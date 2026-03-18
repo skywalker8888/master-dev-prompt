@@ -4,3 +4,6 @@ anthropic
 python-dotenv
 watchdog
 pytest
+pydantic>=2.0
+jinja2
+weasyprint

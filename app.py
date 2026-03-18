@@ -17,8 +17,11 @@ from typing import Annotated
 import anthropic
 from dotenv import load_dotenv
 from fastapi import Depends, FastAPI, Header, HTTPException
-from fastapi.responses import HTMLResponse, StreamingResponse
-from pydantic import BaseModel
+from fastapi.responses import HTMLResponse, Response, StreamingResponse
+from pydantic import BaseModel, ValidationError
+
+from summary.render import render_nuvana_summary
+from summary.schema import SummaryConfig
 
 load_dotenv()
 
@@ -123,6 +126,32 @@ def process_transcript_stream(
 def ui() -> HTMLResponse:
     html = Path(__file__).parent / "static" / "index.html"
     return HTMLResponse(html.read_text() if html.exists() else "<h1>UI not found</h1>", status_code=200 if html.exists() else 404)
+
+
+@app.post("/summary/pdf")
+def summary_pdf(
+    config_raw: dict,
+    _: Annotated[None, Depends(verify_api_key)],
+) -> Response:
+    """Render a Nuvana branded summary PDF from a SummaryConfig JSON body.
+
+    Returns the PDF as application/pdf bytes.  The caller is responsible for
+    building a valid SummaryConfig payload; validation errors are returned as
+    422 with field-level detail.
+    """
+    try:
+        config = SummaryConfig(**config_raw)
+    except ValidationError as exc:
+        raise HTTPException(status_code=422, detail=exc.errors())
+
+    try:
+        pdf_bytes = render_nuvana_summary(config)
+    except ImportError as exc:
+        raise HTTPException(status_code=500, detail=str(exc))
+    except RuntimeError as exc:
+        raise HTTPException(status_code=500, detail=str(exc))
+
+    return Response(content=pdf_bytes, media_type="application/pdf")
 
 
 @app.get("/health")

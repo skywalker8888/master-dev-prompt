@@ -1,0 +1,12 @@
+{
+  "title": "Sprint 14 Engineering Summary",
+  "subtitle": "March 2026 · Nuvana Platform · Master Dev Kit v1.2.0",
+  "modules": ["design", "pm_summary", "actions", "implementation_plan"],
+  "summary_bullets": [
+    "Async job queue architecture finalised; Celery + Redis Streams selected for GPU worker routing.",
+    "Four high-priority actions identified with owners; two are unblocked and ready to start immediately.",
+    "Next milestone targets v1.3.0 model adapter integration; estimated completion end of sprint."
+  ],
+  "optional_system_note": "Confidential — Nuvana internal use only. Do not distribute outside the project team.",
+  "template_version": "1.2.0"
+}

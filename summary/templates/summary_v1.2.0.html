@@ -1,0 +1,205 @@
+<!DOCTYPE html>
+<!--
+  Nuvana Summary PDF — template v1.2.0
+  Rendered via WeasyPrint.  Driven exclusively by SummaryConfig JSON.
+  Layout: fixed A4, brand card style.  DO NOT add free-form content here;
+  all variable content comes from the Jinja2 context dict.
+
+  To bump layout: copy to summary_v1.2.1.html and update TEMPLATE_VERSION
+  in render.py.
+-->
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <style>
+    /* ── Reset ─────────────────────────────────────────────── */
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+    /* ── Page geometry ──────────────────────────────────────── */
+    @page {
+      size: A4;
+      margin: 0;
+    }
+
+    body {
+      font-family: "Helvetica Neue", Helvetica, Arial, sans-serif;
+      font-size: 11pt;
+      color: #1a1a2e;
+      background: #ffffff;
+      width: 210mm;
+      height: 297mm;
+      overflow: hidden;
+    }
+
+    /* ── Cover strip ────────────────────────────────────────── */
+    .cover-strip {
+      background: linear-gradient(135deg, #0f3460 0%, #16213e 60%, #1a1a2e 100%);
+      padding: 28pt 32pt 22pt;
+      color: #ffffff;
+    }
+
+    .brand-logo {
+      font-size: 9pt;
+      letter-spacing: 0.18em;
+      text-transform: uppercase;
+      color: #e94560;
+      font-weight: 700;
+      margin-bottom: 10pt;
+    }
+
+    .cover-strip h1 {
+      font-size: 22pt;
+      font-weight: 800;
+      line-height: 1.15;
+      letter-spacing: -0.02em;
+      margin-bottom: 5pt;
+    }
+
+    .cover-strip .subtitle {
+      font-size: 10pt;
+      color: #a8b2d8;
+      font-weight: 400;
+    }
+
+    /* ── Module badge row ───────────────────────────────────── */
+    .module-row {
+      background: #f4f6fb;
+      border-bottom: 1.5pt solid #dde2f0;
+      padding: 10pt 32pt;
+      display: flex;
+      flex-wrap: wrap;
+      gap: 6pt;
+      align-items: center;
+    }
+
+    .module-row .label {
+      font-size: 7.5pt;
+      text-transform: uppercase;
+      letter-spacing: 0.12em;
+      color: #7f8caa;
+      font-weight: 600;
+      margin-right: 4pt;
+    }
+
+    .badge {
+      background: #0f3460;
+      color: #ffffff;
+      font-size: 7.5pt;
+      font-weight: 700;
+      letter-spacing: 0.06em;
+      text-transform: uppercase;
+      padding: 2.5pt 8pt;
+      border-radius: 3pt;
+    }
+
+    /* ── Body ───────────────────────────────────────────────── */
+    .body-section {
+      padding: 24pt 32pt 0;
+    }
+
+    .section-label {
+      font-size: 7.5pt;
+      text-transform: uppercase;
+      letter-spacing: 0.14em;
+      color: #e94560;
+      font-weight: 700;
+      margin-bottom: 10pt;
+    }
+
+    .bullet-list {
+      list-style: none;
+      padding: 0;
+    }
+
+    .bullet-list li {
+      display: flex;
+      align-items: flex-start;
+      gap: 10pt;
+      margin-bottom: 11pt;
+      font-size: 10.5pt;
+      line-height: 1.45;
+    }
+
+    .bullet-list li::before {
+      content: "";
+      flex-shrink: 0;
+      margin-top: 5pt;
+      width: 6pt;
+      height: 6pt;
+      border-radius: 50%;
+      background: #e94560;
+    }
+
+    /* ── Divider ────────────────────────────────────────────── */
+    .divider {
+      margin: 20pt 32pt;
+      border: none;
+      border-top: 1pt solid #dde2f0;
+    }
+
+    /* ── Footer ─────────────────────────────────────────────── */
+    .footer {
+      position: absolute;
+      bottom: 0;
+      left: 0;
+      right: 0;
+      background: #0f3460;
+      padding: 9pt 32pt;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+    }
+
+    .footer .note {
+      font-size: 7.5pt;
+      color: #a8b2d8;
+      max-width: 380pt;
+    }
+
+    .footer .version-tag {
+      font-size: 7pt;
+      color: #4a6080;
+      letter-spacing: 0.1em;
+      white-space: nowrap;
+    }
+  </style>
+</head>
+<body>
+
+  <!-- Cover strip -->
+  <div class="cover-strip">
+    <div class="brand-logo">Nuvana</div>
+    <h1>{{ title }}</h1>
+    <div class="subtitle">{{ subtitle }}</div>
+  </div>
+
+  <!-- Module badge row -->
+  <div class="module-row">
+    <span class="label">Artifacts</span>
+    {% for module in modules %}
+      <span class="badge">{{ module | replace("_", " ") }}</span>
+    {% endfor %}
+  </div>
+
+  <!-- Executive summary bullets -->
+  <div class="body-section">
+    <div class="section-label">Executive Summary</div>
+    <ul class="bullet-list">
+      {% for bullet in summary_bullets %}
+        <li>{{ bullet }}</li>
+      {% endfor %}
+    </ul>
+  </div>
+
+  <hr class="divider" />
+
+  <!-- Footer -->
+  <div class="footer">
+    <span class="note">
+      {% if optional_system_note %}{{ optional_system_note }}{% endif %}
+    </span>
+    <span class="version-tag">template v{{ template_version }}</span>
+  </div>
+
+</body>
+</html>
