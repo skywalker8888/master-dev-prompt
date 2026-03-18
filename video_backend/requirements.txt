@@ -6,15 +6,35 @@ python-dotenv>=1.0.0
 httpx>=0.27.0        # used by AllegroAdapter remote mode
 
 # --- GPU / model dependencies (install on GPU hosts only) ----------------
-# CogVideoX
+
+# All GPU adapters share this base stack:
 # torch>=2.3.0
-# diffusers>=0.29.0
+# torchvision
+# diffusers>=0.33.0    # 0.33+ required for Wan2.1 and LTX-Video
 # transformers>=4.41.0
 # accelerate>=0.30.0
 # imageio[ffmpeg]>=2.34.0
+# Pillow>=10.3.0       # required by StableVideoAdapter
 
-# Stable Video Diffusion (same stack as CogVideoX, add Pillow)
-# Pillow>=10.3.0
-
-# Allegro (local mode uses same diffusers stack)
-# (no extra packages beyond CogVideoX set)
+# Adapter-specific notes:
+#
+# Wan2.1 (RECOMMENDED — Apache 2.0, 8 GB VRAM min):
+#   MODEL_BACKEND=wan21
+#   Default model: Wan-AI/Wan2.1-T2V-1.3B  (8 GB)
+#   High quality:  Wan-AI/Wan2.1-T2V-14B   (24+ GB)
+#
+# LTX-Video (fastest, real-time on high-end GPU, 12 GB VRAM):
+#   MODEL_BACKEND=ltxvideo
+#   Default model: Lightricks/LTX-Video
+#
+# CogVideoX (moderate hardware, Apache 2.0):
+#   MODEL_BACKEND=cogvideox
+#   Default model: THUDM/CogVideoX-5b
+#
+# Allegro (local or remote API):
+#   MODEL_BACKEND=allegro
+#   Local: ALLEGRO_MODEL_PATH=rhymes-ai/Allegro
+#   Remote: ALLEGRO_API_URL=https://... ALLEGRO_API_KEY=...
+#
+# Stable Video Diffusion (image-to-video via SVD + optional SDXL):
+#   MODEL_BACKEND=stable_video

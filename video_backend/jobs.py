@@ -20,7 +20,7 @@ import os
 import uuid
 from collections import OrderedDict
 from concurrent.futures import ThreadPoolExecutor
-from datetime import datetime
+from datetime import datetime, timezone
 from typing import Optional
 
 from .adapters.base import BaseVideoAdapter
@@ -44,6 +44,12 @@ def _build_adapter(backend: ModelBackend) -> BaseVideoAdapter:
     if backend == ModelBackend.STABLE_VIDEO:
         from .adapters.stable_video import StableVideoAdapter
         return StableVideoAdapter()
+    if backend == ModelBackend.WAN21:
+        from .adapters.wan21 import Wan21Adapter
+        return Wan21Adapter()
+    if backend == ModelBackend.LTX_VIDEO:
+        from .adapters.ltxvideo import LTXVideoAdapter
+        return LTXVideoAdapter()
     # default / mock
     from .adapters.mock import MockAdapter
     return MockAdapter()
@@ -64,8 +70,16 @@ class JobRegistry:
     async def put(self, record: JobRecord) -> None:
         async with self._lock:
             if len(self._store) >= self._max:
-                # evict oldest
-                self._store.popitem(last=False)
+                # Only evict if the oldest job is in a terminal state to avoid
+                # orphaning in-flight jobs.
+                oldest_id, oldest = next(iter(self._store.items()))
+                if oldest.status in (JobStatus.COMPLETED, JobStatus.FAILED):
+                    self._store.popitem(last=False)
+                else:
+                    logger.warning(
+                        "JobRegistry at capacity (%d); oldest job %s is still %s — skipping eviction",
+                        self._max, oldest_id, oldest.status,
+                    )
             self._store[record.job_id] = record
 
     async def get(self, job_id: str) -> Optional[JobRecord]:
@@ -79,7 +93,7 @@ class JobRegistry:
                 return None
             for k, v in kwargs.items():
                 setattr(record, k, v)
-            record.updated_at = datetime.utcnow()
+            record.updated_at = datetime.now(timezone.utc)
             return record
 
     async def list_recent(self, limit: int = 50, offset: int = 0) -> list[JobRecord]:
@@ -113,6 +127,11 @@ class JobQueue:
             self._adapter = _build_adapter(settings.MODEL_BACKEND)
         return self._adapter
 
+    @property
+    def queue_size(self) -> int:
+        """Number of jobs currently waiting in the queue (not yet processing)."""
+        return self._queue.qsize()
+
     # ------------------------------------------------------------------
     # Lifecycle
     # ------------------------------------------------------------------
@@ -128,7 +147,9 @@ class JobQueue:
         for task in self._workers:
             task.cancel()
         await asyncio.gather(*self._workers, return_exceptions=True)
-        self._executor.shutdown(wait=False)
+        self._workers.clear()
+        # wait=True so in-flight threads finish cleanly before the process exits
+        self._executor.shutdown(wait=True)
         logger.info("JobQueue stopped")
 
     # ------------------------------------------------------------------
@@ -156,16 +177,20 @@ class JobQueue:
                 job_id = await self._queue.get()
                 record = await self.registry.get(job_id)
                 if record is None:
-                    logger.warning("Worker %s: job %s not found in registry", name, job_id)
+                    logger.warning("Worker %s: job %s not found in registry (evicted?)", name, job_id)
+                    self._queue.task_done()
+                    continue
+
+                # Skip jobs that were cancelled while queued
+                if record.status == JobStatus.FAILED:
+                    logger.info("Worker %s: skipping cancelled job %s", name, job_id)
                     self._queue.task_done()
                     continue
 
                 await self.registry.update(job_id, status=JobStatus.PROCESSING)
                 logger.info("Worker %s: processing job %s", name, job_id)
 
-                output_path = os.path.join(
-                    settings.OUTPUT_DIR, f"{job_id}.mp4"
-                )
+                output_path = os.path.join(settings.OUTPUT_DIR, f"{job_id}.mp4")
 
                 try:
                     adapter = self._get_adapter()
@@ -198,7 +223,7 @@ class JobQueue:
                     await self.registry.update(
                         job_id,
                         status=JobStatus.FAILED,
-                        error=str(exc),
+                        error=repr(exc),
                     )
 
                 finally:

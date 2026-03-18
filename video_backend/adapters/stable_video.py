@@ -22,8 +22,12 @@ from __future__ import annotations
 
 import os
 
+import logging
+
 from ..models import GenerateRequest
 from .base import BaseVideoAdapter, VideoResult
+
+logger = logging.getLogger(__name__)
 
 
 class StableVideoAdapter(BaseVideoAdapter):
@@ -119,8 +123,8 @@ class StableVideoAdapter(BaseVideoAdapter):
                     generator=generator,
                 )
                 return result.images[0]
-            except Exception:
-                pass  # fall through to solid colour
+            except Exception as exc:
+                logger.warning("SVD: SDXL conditioning image failed, using grey placeholder: %s", repr(exc))
 
         # Fallback: grey placeholder
         return Image.new("RGB", (width, height), color=(128, 128, 128))

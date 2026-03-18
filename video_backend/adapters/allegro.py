@@ -9,13 +9,16 @@ Two modes:
                      (set ALLEGRO_API_URL + ALLEGRO_API_KEY).
 
 Env vars:
-    ALLEGRO_API_URL      If set, use remote mode (e.g. https://api.rhymes.ai/v1)
-    ALLEGRO_API_KEY      Bearer token for remote mode
-    ALLEGRO_MODEL_PATH   HF model id for local mode (default: rhymes-ai/Allegro)
+    ALLEGRO_API_URL        If set, use remote mode (e.g. https://api.rhymes.ai/v1)
+    ALLEGRO_API_KEY        Bearer token for remote mode
+    ALLEGRO_MODEL_PATH     HF model id for local mode (default: rhymes-ai/Allegro)
+    ALLEGRO_MAX_POLL_WAIT  Max seconds to poll remote API (default: 600)
+    ALLEGRO_MAX_VIDEO_MB   Max video file size to download in MB (default: 500)
 """
 
 from __future__ import annotations
 
+import logging
 import os
 import time
 from typing import Optional
@@ -24,6 +27,12 @@ import httpx
 
 from ..models import GenerateRequest
 from .base import BaseVideoAdapter, VideoResult
+
+logger = logging.getLogger(__name__)
+
+_MAX_POLL_WAIT = int(os.getenv("ALLEGRO_MAX_POLL_WAIT", "600"))
+_MAX_VIDEO_BYTES = int(os.getenv("ALLEGRO_MAX_VIDEO_MB", "500")) * 1024 * 1024
+_POLL_INTERVAL = 5  # seconds between status checks
 
 
 class AllegroAdapter(BaseVideoAdapter):
@@ -36,10 +45,17 @@ class AllegroAdapter(BaseVideoAdapter):
         self._api_key: str = os.getenv("ALLEGRO_API_KEY", "")
         self._model_path: str = os.getenv("ALLEGRO_MODEL_PATH", "rhymes-ai/Allegro")
         self._pipe = None
+        # Persistent client for remote mode (connection pooling)
+        self._http_client: Optional[httpx.Client] = None
 
     @property
     def name(self) -> str:
         return "allegro"
+
+    def _get_http_client(self) -> httpx.Client:
+        if self._http_client is None or self._http_client.is_closed:
+            self._http_client = httpx.Client(timeout=httpx.Timeout(connect=10, read=60, write=30, pool=5))
+        return self._http_client
 
     # ------------------------------------------------------------------
     # Local inference
@@ -114,10 +130,14 @@ class AllegroAdapter(BaseVideoAdapter):
 
     def _generate_remote(self, request: GenerateRequest, output_path: str) -> VideoResult:
         """
-        Submit a generation job to an Allegro-compatible REST API and poll
-        until the video URL is ready, then download it.
+        Submit a generation job to an Allegro-compatible REST API, poll until
+        complete, then download with size and timeout protection.
         """
-        headers = {"Authorization": f"Bearer {self._api_key}", "Content-Type": "application/json"}
+        client = self._get_http_client()
+        headers = {
+            "Authorization": f"Bearer {self._api_key}",
+            "Content-Type": "application/json",
+        }
 
         payload = {
             "refined_prompt": request.prompt,
@@ -129,40 +149,61 @@ class AllegroAdapter(BaseVideoAdapter):
         if request.negative_prompt:
             payload["negative_prompt"] = request.negative_prompt
 
-        with httpx.Client(timeout=30) as client:
-            # Submit
-            resp = client.post(f"{self._api_url}/generate_video", json=payload, headers=headers)
-            resp.raise_for_status()
-            job_data = resp.json()
-            request_id = job_data.get("data")
-            if not request_id:
-                raise RuntimeError(f"Allegro API returned no request_id: {job_data}")
+        # Submit
+        resp = client.post(f"{self._api_url}/generate_video", json=payload, headers=headers)
+        resp.raise_for_status()
+        job_data = resp.json()
+        request_id = job_data.get("data")
+        if not request_id:
+            raise RuntimeError(f"Allegro API returned no request_id; response: {job_data}")
 
-            # Poll
-            for _ in range(120):  # up to 10 minutes
-                time.sleep(5)
-                poll = client.get(
-                    f"{self._api_url}/get_inference_job",
-                    params={"requestId": request_id},
-                    headers=headers,
-                )
-                poll.raise_for_status()
-                poll_data = poll.json()
-                status = poll_data.get("data", {}).get("status")
-                if status == "success":
-                    video_url = poll_data["data"]["output_data"][0]
-                    break
-                if status in ("failed", "error"):
-                    raise RuntimeError(f"Allegro API job failed: {poll_data}")
+        # Poll with timeout
+        deadline = time.monotonic() + _MAX_POLL_WAIT
+        video_url: Optional[str] = None
+
+        while time.monotonic() < deadline:
+            time.sleep(_POLL_INTERVAL)
+            poll = client.get(
+                f"{self._api_url}/get_inference_job",
+                params={"requestId": request_id},
+                headers=headers,
+            )
+            poll.raise_for_status()
+            poll_data = poll.json()
+            job_info = poll_data.get("data") or {}
+            status = job_info.get("status")
+
+            if status == "success":
+                outputs = job_info.get("output_data") or []
+                if not outputs:
+                    raise RuntimeError(f"Allegro API job {request_id!r} succeeded but returned no output_data")
+                video_url = outputs[0]
+                break
+            elif status in ("failed", "error", "cancelled"):
+                raise RuntimeError(f"Allegro API job {request_id!r} ended with status {status!r}: {job_info}")
+            elif status in ("queued", "processing", "running", None):
+                logger.debug("Allegro job %s status=%s, continuing to poll", request_id, status)
             else:
-                raise RuntimeError("Allegro API job timed out after 10 minutes")
+                logger.warning("Allegro job %s: unknown status %r — continuing to poll", request_id, status)
 
-            # Download
-            os.makedirs(os.path.dirname(output_path), exist_ok=True)
-            with client.stream("GET", video_url) as stream:
-                with open(output_path, "wb") as fh:
-                    for chunk in stream.iter_bytes(chunk_size=8192):
-                        fh.write(chunk)
+        if video_url is None:
+            raise RuntimeError(
+                f"Allegro API job {request_id!r} did not complete within {_MAX_POLL_WAIT}s"
+            )
+
+        # Download with size guard
+        os.makedirs(os.path.dirname(output_path), exist_ok=True)
+        downloaded = 0
+        with client.stream("GET", video_url, timeout=httpx.Timeout(connect=10, read=120)) as stream:
+            stream.raise_for_status()
+            with open(output_path, "wb") as fh:
+                for chunk in stream.iter_bytes(chunk_size=65536):
+                    downloaded += len(chunk)
+                    if downloaded > _MAX_VIDEO_BYTES:
+                        raise RuntimeError(
+                            f"Allegro download exceeded {_MAX_VIDEO_BYTES // (1024*1024)} MB limit"
+                        )
+                    fh.write(chunk)
 
         fps = request.fps or 15
         num_frames = request.num_frames or 88
@@ -194,7 +235,7 @@ class AllegroAdapter(BaseVideoAdapter):
                 base["api_url"] = self._api_url
             except Exception as exc:
                 base["status"] = "down"
-                base["reason"] = str(exc)
+                base["reason"] = repr(exc)
         else:
             try:
                 import torch

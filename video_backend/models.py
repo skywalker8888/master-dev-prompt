@@ -6,7 +6,7 @@ Pydantic schemas shared across routes, job queue, and adapters.
 
 from __future__ import annotations
 
-from datetime import datetime
+from datetime import datetime, timezone
 from enum import Enum
 from typing import Optional
 
@@ -68,8 +68,8 @@ class JobRecord(BaseModel):
     job_id: str
     status: JobStatus = JobStatus.PENDING
     request: GenerateRequest
-    created_at: datetime = Field(default_factory=datetime.utcnow)
-    updated_at: datetime = Field(default_factory=datetime.utcnow)
+    created_at: datetime = Field(default_factory=lambda: datetime.now(timezone.utc))
+    updated_at: datetime = Field(default_factory=lambda: datetime.now(timezone.utc))
     video_url: Optional[str] = None
     error: Optional[str] = None
     metadata: dict = Field(default_factory=dict)

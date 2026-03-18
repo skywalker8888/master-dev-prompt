@@ -14,11 +14,11 @@ Routes:
 from __future__ import annotations
 
 import hmac
-import os
 from typing import Annotated, Optional
 
 from fastapi import APIRouter, Depends, Header, HTTPException, Query
 
+from .config import settings
 from .jobs import job_queue
 from .models import GenerateRequest, JobListResponse, JobResponse, JobStatus
 
@@ -26,14 +26,13 @@ router = APIRouter()
 
 
 # ---------------------------------------------------------------------------
-# Optional API-key auth
+# Optional API-key auth — key is read from settings (cached at startup)
 # ---------------------------------------------------------------------------
 
 async def verify_api_key(x_api_key: Annotated[Optional[str], Header()] = None) -> None:
-    server_key = os.getenv("SERVER_API_KEY", "")
-    if not server_key:
+    if not settings.SERVER_API_KEY:
         return
-    if not x_api_key or not hmac.compare_digest(x_api_key, server_key):
+    if not x_api_key or not hmac.compare_digest(x_api_key, settings.SERVER_API_KEY):
         raise HTTPException(status_code=401, detail="Unauthorized")
 
 
@@ -59,11 +58,17 @@ async def list_jobs(
     status: Optional[JobStatus] = Query(None),
 ) -> JobListResponse:
     """List recent jobs, newest first.  Optionally filter by status."""
-    records = await job_queue.registry.list_recent(limit=limit + offset, offset=0)
-    if status is not None:
-        records = [r for r in records if r.status == status]
     total = await job_queue.registry.count()
-    page = records[offset: offset + limit]
+
+    if status is not None:
+        # When filtering by status we must over-fetch and then slice,
+        # since we can't predict how many matching records exist before offset.
+        all_records = await job_queue.registry.list_recent(limit=total, offset=0)
+        filtered = [r for r in all_records if r.status == status]
+        page = filtered[offset: offset + limit]
+    else:
+        page = await job_queue.registry.list_recent(limit=limit, offset=offset)
+
     return JobListResponse(jobs=[r.to_response() for r in page], total=total)
 
 
@@ -99,14 +104,17 @@ async def cancel_job(job_id: str, _: Auth) -> None:
 
 @router.get("/health")
 async def health(_: Auth) -> dict:
-    """Liveness check + adapter health."""
-    adapter = job_queue._get_adapter()
-    adapter_health = adapter.health_check()
-    queue_size = job_queue._queue.qsize()
+    """Liveness check + adapter health. Never raises — always returns a status dict."""
+    try:
+        adapter = job_queue._get_adapter()
+        adapter_health = adapter.health_check()
+    except Exception as exc:
+        adapter_health = {"status": "down", "reason": repr(exc)}
+
     total_jobs = await job_queue.registry.count()
     return {
         "status": "ok",
-        "queue_depth": queue_size,
+        "queue_depth": job_queue.queue_size,
         "total_jobs": total_jobs,
         "adapter": adapter_health,
     }
