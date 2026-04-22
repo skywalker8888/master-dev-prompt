@@ -1,35 +1,6 @@
-name: Validate master-dev-prompt (mock)
-
-on:
-  pull_request:
-    types: [opened, synchronize, reopened]
-
-jobs:
-  validate-mock:
-    name: Validate (mock)
-    runs-on: ubuntu-latest
-    steps:
-      - name: Checkout
-        uses: actions/checkout@v4
-
-      - name: Set up Python
-        uses: actions/setup-python@v4
-        with:
-          python-version: '3.x'
-
-      - name: Make scripts executable
-        run: |
-          chmod +x ./run_master_dev.sh || true
-          chmod +x ./batch_run_master_dev.sh || true
-
-      - name: Run batch mock and validate
-        run: |
-          ./batch_run_master_dev.sh ./transcripts ./outputs --mock
-          # Validate any produced json files; fail the job if invalid
-          python3 validate_output.py outputs/sample_transcript.json
 name: Validate Master Dev Prompt Outputs
 
-'on':
+on:
   pull_request:
   push:
     branches:
@@ -48,6 +19,17 @@ jobs:
         with:
           python-version: "3.11"
 
+      - name: Install dependencies
+        run: pip install -r requirements.txt
+
+      - name: Make scripts executable
+        run: |
+          chmod +x ./run_master_dev.sh || true
+          chmod +x ./batch_run_master_dev.sh || true
+
+      - name: Run pytest
+        run: python3 -m pytest tests/ -v
+
       - name: Run validation CI checks
         shell: bash
         run: |
@@ -60,3 +42,8 @@ jobs:
             echo "Could not locate master-dev-prompt project root."
             exit 1
           fi
+
+      - name: Run batch mock and validate
+        run: |
+          ./batch_run_master_dev.sh ./transcripts ./outputs --mock
+          python3 validate_output.py outputs/sample_transcript.json
