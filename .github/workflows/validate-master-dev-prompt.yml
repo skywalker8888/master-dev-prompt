@@ -8,6 +8,8 @@ jobs:
   validate-mock:
     name: Validate (mock)
     runs-on: ubuntu-latest
+    permissions:
+      contents: read
     steps:
       - name: Checkout
         uses: actions/checkout@v4
@@ -27,36 +29,3 @@ jobs:
           ./batch_run_master_dev.sh ./transcripts ./outputs --mock
           # Validate any produced json files; fail the job if invalid
           python3 validate_output.py outputs/sample_transcript.json
-name: Validate Master Dev Prompt Outputs
-
-'on':
-  pull_request:
-  push:
-    branches:
-      - main
-      - master
-
-jobs:
-  validate:
-    runs-on: ubuntu-latest
-    steps:
-      - name: Checkout
-        uses: actions/checkout@v4
-
-      - name: Setup Python
-        uses: actions/setup-python@v5
-        with:
-          python-version: "3.11"
-
-      - name: Run validation CI checks
-        shell: bash
-        run: |
-          set -euo pipefail
-          if [[ -f Makefile && -f master_dev_prompt.txt ]]; then
-            make ci
-          elif [[ -d master-dev-prompt && -f master-dev-prompt/Makefile ]]; then
-            make -C master-dev-prompt ci
-          else
-            echo "Could not locate master-dev-prompt project root."
-            exit 1
-          fi
