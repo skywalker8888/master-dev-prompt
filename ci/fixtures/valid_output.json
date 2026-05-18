@@ -52,5 +52,51 @@
         "notes": ""
       }
     ]
+  },
+  "agent_task_report": {
+    "urgency_workflow": {
+      "assignment_mode": "",
+      "reporting_interval": ""
+    },
+    "qualification_checks": [
+      {
+        "agent_name": "",
+        "qualification_test": "",
+        "result": "pass",
+        "notes": ""
+      }
+    ],
+    "task_slides": [
+      {
+        "agent_name": "",
+        "task_title": "",
+        "task_description": "",
+        "status": "Done",
+        "evidence_output": "",
+        "timestamp": ""
+      }
+    ],
+    "master_checklist": [
+      {
+        "agent_name": "",
+        "task_title": "",
+        "status": "Done",
+        "checked": false
+      }
+    ],
+    "review_checkpoints": [
+      {
+        "checkpoint": "",
+        "focus": "",
+        "owner": ""
+      }
+    ],
+    "escalation_rules": [
+      {
+        "trigger": "",
+        "action": "",
+        "reassignment_owner": ""
+      }
+    ]
   }
 }
