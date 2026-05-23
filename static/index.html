@@ -528,6 +528,85 @@ function render(d) {
         html += section('IMPLEMENTATION PLAN', '#a855f7', body, 180);
     }
 
+    // Agent task report
+    const atr = d.agent_task_report || {};
+    const qc = (atr.qualification_checks || []).filter(q => q.agent_name || q.qualification_test);
+    const slides = (atr.task_slides || []).filter(s => s.task_title || s.task_description);
+    const checklist = (atr.master_checklist || []).filter(c => c.task_title || c.agent_name);
+    const checkpoints = (atr.review_checkpoints || []).filter(c => c.checkpoint || c.focus || c.owner);
+    const escalation = (atr.escalation_rules || []).filter(r => r.trigger || r.action || r.reassignment_owner);
+    if (atr.urgency_workflow || qc.length || slides.length || checklist.length || checkpoints.length || escalation.length) {
+        let body = '';
+        const urgency = fields([
+            ['assignment mode', atr.urgency_workflow?.assignment_mode],
+            ['reporting interval', atr.urgency_workflow?.reporting_interval],
+        ]);
+        if (urgency) body += urgency;
+
+        if (qc.length) {
+            body += `<div class="sub-label">qualification checks</div>`;
+            body += qc.map(q => `
+                <div class="ms-row">
+                    <div><strong>${esc(q.agent_name || 'agent')}</strong> · ${esc(q.qualification_test || '')}</div>
+                    <div class="ms-meta">
+                        ${q.result ? `<span>Result: ${esc(q.result)}</span>` : ''}
+                        ${q.notes ? `<span>${esc(q.notes)}</span>` : ''}
+                    </div>
+                </div>`).join('');
+        }
+
+        if (slides.length) {
+            body += `<div class="sub-label">task slides (one task per slide)</div>`;
+            body += slides.map(s => `
+                <div class="task-row">
+                    <div>
+                        <div><strong>${esc(s.task_title || 'task')}</strong></div>
+                        ${s.task_description ? `<div>${esc(s.task_description)}</div>` : ''}
+                        ${s.agent_name ? `<div class="item-owner">→ ${esc(s.agent_name)}</div>` : ''}
+                        ${s.evidence_output ? `<div class="item-owner">evidence: ${esc(s.evidence_output)}</div>` : ''}
+                        ${s.timestamp ? `<div class="item-owner">time: ${esc(s.timestamp)}</div>` : ''}
+                    </div>
+                    <div class="tags">
+                        ${s.status ? `<span class="tag t-plain">${esc(s.status)}</span>` : ''}
+                    </div>
+                </div>`).join('');
+        }
+
+        if (checklist.length) {
+            body += `<div class="sub-label">master checklist</div>`;
+            body += checklist.map(c => `
+                <div class="ms-row">
+                    <div>${c.checked ? '☑' : '☐'} ${esc(c.task_title || '')}</div>
+                    <div class="ms-meta">
+                        ${c.agent_name ? `<span>Agent: ${esc(c.agent_name)}</span>` : ''}
+                        ${c.status ? `<span>Status: ${esc(c.status)}</span>` : ''}
+                    </div>
+                </div>`).join('');
+        }
+
+        if (checkpoints.length) {
+            body += `<div class="sub-label">review checkpoints</div>`;
+            body += checkpoints.map(c => `
+                <div class="ms-row">
+                    <div><strong>${esc(c.checkpoint || '')}</strong></div>
+                    ${c.focus ? `<div>${esc(c.focus)}</div>` : ''}
+                    ${c.owner ? `<div class="item-owner">owner: ${esc(c.owner)}</div>` : ''}
+                </div>`).join('');
+        }
+
+        if (escalation.length) {
+            body += `<div class="sub-label">escalation rules</div>`;
+            body += escalation.map(r => `
+                <div class="ms-row">
+                    ${r.trigger ? `<div><strong>trigger:</strong> ${esc(r.trigger)}</div>` : ''}
+                    ${r.action ? `<div><strong>action:</strong> ${esc(r.action)}</div>` : ''}
+                    ${r.reassignment_owner ? `<div class="item-owner">reassign to: ${esc(r.reassignment_owner)}</div>` : ''}
+                </div>`).join('');
+        }
+
+        html += section('AGENT TASK REPORT', '#14b8a6', body, 240);
+    }
+
     // Code suggestions
     const snips = (d.code_suggestions?.snippets || []).filter(s => s.code || s.title);
     if (snips.length) {
@@ -555,7 +634,7 @@ function render(d) {
                 ${s.notes ? `<div class="snip-notes">${esc(s.notes)}</div>` : ''}
             </div>`;
         });
-        html += section('CODE SUGGESTIONS', '#3b82f6', body, 240);
+        html += section('CODE SUGGESTIONS', '#3b82f6', body, 300);
     }
 
     document.getElementById('sections').innerHTML = html;
