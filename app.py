@@ -19,6 +19,7 @@ from dotenv import load_dotenv
 from fastapi import Depends, FastAPI, Header, HTTPException
 from fastapi.responses import HTMLResponse, StreamingResponse
 from pydantic import BaseModel
+from transcript_sanitizer import sanitize_transcript
 
 load_dotenv()
 
@@ -64,7 +65,8 @@ def process_transcript(
 
     client = anthropic.Anthropic(api_key=api_key)
     system = _get_system_prompt()
-    user_message = f'{req.transcript}\n"""'
+    sanitized_transcript = sanitize_transcript(req.transcript)
+    user_message = f'{sanitized_transcript}\n"""'
 
     message = client.messages.create(
         model="claude-sonnet-4-6",
@@ -96,7 +98,8 @@ def process_transcript_stream(
 
     client = anthropic.Anthropic(api_key=api_key)
     system = _get_system_prompt()
-    user_message = f'{req.transcript}\n"""'
+    sanitized_transcript = sanitize_transcript(req.transcript)
+    user_message = f'{sanitized_transcript}\n"""'
 
     def generate():
         accumulated = ""

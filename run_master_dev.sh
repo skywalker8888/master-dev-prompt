@@ -46,7 +46,25 @@ fi
 # Build full prompt payload
 build_payload() {
   cat "$PROMPT_FILE"
-  cat "$TRANSCRIPT_FILE"
+  python3 - "$TRANSCRIPT_FILE" "$SCRIPT_DIR" <<'PY'
+import sys
+from pathlib import Path
+
+try:
+    sys.path.insert(0, sys.argv[2])
+    from transcript_sanitizer import sanitize_transcript
+except Exception as exc:
+    print(f"Error: failed to load transcript sanitizer: {exc}", file=sys.stderr)
+    sys.exit(2)
+
+try:
+    raw_transcript = Path(sys.argv[1]).read_text()
+except Exception as exc:
+    print(f"Error: failed to read transcript file: {exc}", file=sys.stderr)
+    sys.exit(2)
+
+print(sanitize_transcript(raw_transcript), end="")
+PY
   echo ""
   echo '"""'
 }
