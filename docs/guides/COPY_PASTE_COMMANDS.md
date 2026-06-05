@@ -45,7 +45,7 @@ The examples below use product names from an existing support workflow. Replace 
 
 ## Real Examples
 
-- `@agent: process refund for alex@example.com - Amount: 49.00`
+- `@agent: process refund for user@example.com - Amount: 49.00`
 - `@agent: add to FAQ - Question: Do you support Android? - Answer: Yes, Android is supported.`
 - `@agent: approve change request number 142`
 
@@ -55,7 +55,7 @@ The examples below use product names from an existing support workflow. Replace 
 2. Select the command you want.
 3. Copy it.
 4. Open Telegram.
-5. Paste it.
+5. Paste it into Telegram.
 6. Send it to the agent.
 
 ## Why This Works
