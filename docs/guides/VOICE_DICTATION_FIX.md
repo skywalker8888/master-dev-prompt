@@ -10,7 +10,7 @@ Use this guide when Wispr Flow voice feedback bleeds into your own speech while 
 
 ## Recommended Option
 
-If repeated dictation errors are blocking work, stop using live voice-to-Telegram dictation and switch to copy-paste commands from the mobile command guide.
+If repeated dictation errors are blocking work, stop using live voice-to-Telegram dictation and switch to the templates in [`COPY_PASTE_COMMANDS.md`](./COPY_PASTE_COMMANDS.md).
 
 ## Step-by-Step
 

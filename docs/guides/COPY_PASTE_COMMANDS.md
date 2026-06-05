@@ -29,6 +29,8 @@ Use these templates when mobile voice transcription is unreliable. Copy one, rep
 
 ## Product-Specific
 
+The examples below use labels from an existing support workflow. Replace them with your own product or team names if they do not apply.
+
 ### APEX WOLF
 
 - `@agent: create APEX WOLF update for [customer/company]`

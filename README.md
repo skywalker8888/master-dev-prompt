@@ -110,7 +110,7 @@ GitHub Actions runs the same checks on push and pull request.
 
 For teams using Telegram or other mobile chat workflows, use the repository guides below instead of relying on voice transcription:
 
-- [`docs/guides/VOICE_DICTATION_FIX.md`](docs/guides/VOICE_DICTATION_FIX.md) — stop Wispr Flow voice feedback from bleeding into dictation
+- [`docs/guides/VOICE_DICTATION_FIX.md`](docs/guides/VOICE_DICTATION_FIX.md) — troubleshoot voice feedback interference during dictation
 - [`docs/guides/COPY_PASTE_COMMANDS.md`](docs/guides/COPY_PASTE_COMMANDS.md) — ready-to-send command templates for common agent tasks
 
 Recommended mobile flow:
