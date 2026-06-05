@@ -1,5 +1,5 @@
 # Master Developer Prompt Kit
-### Whisper Flow · buildagentic · McDis Framework
+### Wispr Flow · buildagentic · McDis Framework
 
 One prompt. One Claude call. Full engineering package from any transcript.
 
@@ -103,6 +103,23 @@ make ci
 ```
 
 GitHub Actions runs the same checks on push and pull request.
+
+---
+
+## Mobile Agent Guides
+
+For teams using Telegram or other mobile chat workflows, use the repository guides below instead of relying on voice transcription:
+
+- [`docs/guides/VOICE_DICTATION_FIX.md`](docs/guides/VOICE_DICTATION_FIX.md) — stop Wispr Flow voice feedback from bleeding into dictation
+- [`docs/guides/COPY_PASTE_COMMANDS.md`](docs/guides/COPY_PASTE_COMMANDS.md) — ready-to-send command templates for common agent tasks
+
+Recommended mobile flow:
+1. Open the copy-paste guide.
+2. Copy the command you need.
+3. Paste it into Telegram.
+4. Send it to the agent.
+
+This avoids voice transcription errors and keeps agent requests consistent.
 
 ---
 
