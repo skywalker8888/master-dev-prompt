@@ -1,6 +1,6 @@
 # Voice Dictation Fix
 
-Use this guide when Wispr Flow voice feedback bleeds into your own speech while dictating mobile messages to an agent.
+Use this guide when audio played back by Wispr Flow or the device speech system gets picked up again during mobile dictation and pollutes the message you are trying to send to an agent.
 
 ## Fastest Fixes
 

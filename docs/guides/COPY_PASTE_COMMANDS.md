@@ -5,9 +5,9 @@ Use these templates when mobile voice transcription is unreliable. Copy one, rep
 ## Daily Operations
 
 - `@agent: give me daily report`
-- `@agent: process refund for [email] - Amount: [amount]`
+- `@agent: process refund for [customer_email] - Amount: [refund_amount]`
 - `@agent: check status for order [order_id]`
-- `@agent: send follow-up to [customer_name] about [topic]`
+- `@agent: send follow-up to [customer_name] about [support_topic]`
 
 ## Weekly / Monthly
 
@@ -25,11 +25,11 @@ Use these templates when mobile voice transcription is unreliable. Copy one, rep
 
 - `@agent: check pricing for [product]`
 - `@agent: explain refund policy for [product]`
-- `@agent: approve change request number [#]`
+- `@agent: approve change request number [request_number]`
 
 ## Product-Specific
 
-The examples below use labels from an existing support workflow. Replace them with your own product or team names if they do not apply.
+The examples below use product names from an existing support workflow. Replace them with your own product or team names if they do not apply.
 
 ### APEX WOLF
 
