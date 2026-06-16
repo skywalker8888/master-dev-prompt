@@ -54,8 +54,48 @@ def test_process_transcript_calls_script(tmp_path):
 
     with patch("subprocess.run") as mock_run:
         mock_run.return_value = MagicMock(returncode=0, stdout="{}", stderr="")
-        process_transcript(txt, outputs_dir, script)
+        # Pass a non-existent validator to isolate script-call behaviour
+        process_transcript(txt, outputs_dir, script, validator=tmp_path / "no_validator.py")
         mock_run.assert_called_once()
         args = mock_run.call_args[0][0]
         assert str(script) in args
         assert str(txt) in args
+
+
+def test_process_transcript_validates_output(tmp_path):
+    from watcher import process_transcript
+    txt = tmp_path / "meeting.txt"
+    txt.write_text("transcript content")
+    outputs_dir = tmp_path / "outputs"
+    outputs_dir.mkdir()
+    script = tmp_path / "run_master_dev.sh"
+    validator = tmp_path / "validate_output.py"
+    validator.write_text("# stub")
+
+    with patch("subprocess.run") as mock_run:
+        mock_run.return_value = MagicMock(returncode=0, stdout="{}", stderr="")
+        process_transcript(txt, outputs_dir, script, validator=validator)
+        assert mock_run.call_count == 2
+        val_args = mock_run.call_args_list[1][0][0]
+        assert str(validator) in val_args
+
+
+def test_process_transcript_saves_invalid_on_schema_error(tmp_path):
+    from watcher import process_transcript
+    txt = tmp_path / "meeting.txt"
+    txt.write_text("transcript content")
+    outputs_dir = tmp_path / "outputs"
+    outputs_dir.mkdir()
+    script = tmp_path / "run_master_dev.sh"
+    validator = tmp_path / "validate_output.py"
+    validator.write_text("# stub")
+
+    def side_effect(cmd, **kwargs):
+        if str(validator) in cmd:
+            return MagicMock(returncode=1, stdout="", stderr="INVALID: missing key")
+        return MagicMock(returncode=0, stdout="{}", stderr="")
+
+    with patch("subprocess.run", side_effect=side_effect):
+        process_transcript(txt, outputs_dir, script, validator=validator)
+        assert not (outputs_dir / "meeting.json").exists()
+        assert (outputs_dir / "meeting.invalid.json").exists()
