@@ -1,0 +1,141 @@
+{
+  "restaurant": {
+    "name": "Dear Saigon Takeout",
+    "address": "2405 Fairview St, Burlington, ON L7M 1B3",
+    "phone_public": "+16473942518",
+    "phone_ai": "+16479322932",
+    "website": "https://dearsaigon.com",
+    "timezone": "America/Toronto",
+    "pos": "Clover",
+    "hours": {
+      "monday":    { "open": "11:00", "close": "21:00" },
+      "tuesday":   { "open": "11:00", "close": "21:00" },
+      "wednesday": { "open": "11:00", "close": "21:00" },
+      "thursday":  { "open": "11:00", "close": "21:00" },
+      "friday":    { "open": "11:00", "close": "22:00" },
+      "saturday":  { "open": "11:00", "close": "22:00" },
+      "sunday":    { "open": "11:00", "close": "21:00" }
+    }
+  },
+  "categories": [
+    {
+      "id": "appetizers",
+      "name": "Appetizers",
+      "items": [
+        { "code": "A1", "name": "Chả Giò — Crispy Spring Rolls",    "name_en": "Crispy Spring Rolls",     "desc": "Golden fried rolls with pork & vegetables, served with nuoc cham",  "price": 8.00,  "badges": ["signature"] },
+        { "code": "A2", "name": "Gỏi Cuốn — Fresh Rolls",           "name_en": "Fresh Rolls",             "desc": "Rice paper rolls with shrimp, pork, vermicelli & fresh herbs (2 pcs)", "price": 9.00,  "badges": [] },
+        { "code": "A3", "name": "Satay Chicken Skewers",             "name_en": "Satay Chicken Skewers",   "desc": "Grilled chicken skewers with peanut satay dipping sauce",            "price": 10.00, "badges": [] },
+        { "code": "A4", "name": "Soup of the Day",                   "name_en": "Soup of the Day",         "desc": "Ask our team for today's selection",                                "price": null,  "badges": [] }
+      ]
+    },
+    {
+      "id": "pho",
+      "name": "Pho — Vietnamese Noodle Soup",
+      "note": "Served with bean sprouts, Thai basil, lime & jalapeño. Large +$2.",
+      "items": [
+        { "code": "P1",  "name": "Rare Beef Pho (Tái)",             "desc": "Thinly sliced rare beef in rich slow-cooked bone broth",            "price": 17.00, "badges": [] },
+        { "code": "P2",  "name": "Beef Brisket Pho (Chín)",         "desc": "Well-done brisket, tender and rich",                                "price": 17.00, "badges": [] },
+        { "code": "P3",  "name": "Rare Beef & Brisket",             "desc": "Tái and chín combination",                                          "price": 18.00, "badges": ["popular"] },
+        { "code": "P4",  "name": "Beef Meatball Pho (Bò Viên)",     "desc": "Bouncy Vietnamese-style beef meatballs",                            "price": 17.00, "badges": [] },
+        { "code": "P5",  "name": "Chicken Pho (Gà)",                "desc": "Poached chicken in light golden broth",                             "price": 16.00, "badges": [] },
+        { "code": "P6",  "name": "Vegetarian Pho (Chay)",           "desc": "Tofu & mixed vegetables in fragrant vegetable broth",               "price": 15.00, "badges": ["veg"] },
+        { "code": "P8",  "name": "House Special Pho",               "desc": "Rare beef, brisket, tendon & meatball — the full combination",      "price": 20.00, "badges": ["signature", "popular"] },
+        { "code": "P9",  "name": "Dear Saigon Pho",                 "desc": "Our signature bowl — chef's special combination with premium cuts", "price": 21.00, "badges": ["signature"] },
+        { "code": "P10", "name": "Bún Bò Huế",                     "desc": "Spicy lemongrass beef noodle soup, Central Vietnam style",          "price": 18.00, "badges": ["spicy"] },
+        { "code": "P11", "name": "Big Beef Bone Add-On",            "desc": "Large beef bone added to any pho",                                  "price": 4.00,  "badges": [], "is_addon": true }
+      ]
+    },
+    {
+      "id": "satay",
+      "name": "Satay Noodle Soup",
+      "note": "Rich coconut peanut broth with rice noodles.",
+      "items": [
+        { "code": "S1", "name": "Beef Satay Noodle Soup",    "desc": "Sliced beef in creamy peanut-coconut satay broth",   "price": 18.00, "badges": [] },
+        { "code": "S2", "name": "Chicken Satay Noodle Soup", "desc": "Tender chicken in coconut peanut broth",             "price": 17.00, "badges": [] },
+        { "code": "S3", "name": "Shrimp Satay Noodle Soup",  "desc": "Plump shrimp in rich satay broth",                  "price": 18.00, "badges": [] },
+        { "code": "S4", "name": "Mixed Satay Noodle Soup",   "desc": "Beef, chicken & shrimp combination",                "price": 20.00, "badges": ["popular"] }
+      ]
+    },
+    {
+      "id": "tomyum",
+      "name": "Tom Yum",
+      "note": "Aromatic hot & sour broth with lemongrass, kaffir lime & galangal.",
+      "items": [
+        { "code": "T1", "name": "Shrimp Tom Yum",        "desc": "Plump shrimp in spicy lemongrass broth with mushrooms & tomato", "price": 18.00, "badges": ["spicy"] },
+        { "code": "T2", "name": "Chicken Tom Yum",       "desc": "Tender chicken in fragrant hot & sour broth",                    "price": 17.00, "badges": ["spicy"] },
+        { "code": "T3", "name": "Mixed Seafood Tom Yum", "desc": "Shrimp, squid & fish in lemongrass broth",                      "price": 20.00, "badges": ["spicy"] }
+      ]
+    },
+    {
+      "id": "padthai",
+      "name": "Pad Thai",
+      "note": "Wok-fried rice noodles with egg, bean sprouts, peanuts & tamarind sauce.",
+      "items": [
+        { "code": "PT1", "name": "Chicken Pad Thai",     "desc": "Classic pad thai with tender wok-charred chicken",   "price": 17.00, "badges": [] },
+        { "code": "PT2", "name": "Shrimp Pad Thai",      "desc": "Wok-fried rice noodles with fresh shrimp",           "price": 18.00, "badges": [] },
+        { "code": "PT3", "name": "Beef Pad Thai",        "desc": "Wok-fried noodles with sliced marinated beef",       "price": 18.00, "badges": [] },
+        { "code": "PT4", "name": "Vegetarian Pad Thai",  "desc": "With crispy tofu, egg & seasonal vegetables",        "price": 15.00, "badges": ["veg"] }
+      ]
+    },
+    {
+      "id": "vermicelli",
+      "name": "Vermicelli Bowls (Bún)",
+      "note": "Cold rice vermicelli with fresh herbs, pickled daikon & fish sauce dressing.",
+      "items": [
+        { "code": "V1", "name": "Grilled Chicken Bún",  "desc": "Lemongrass-marinated grilled chicken over rice vermicelli", "price": 16.00, "badges": [] },
+        { "code": "V2", "name": "Grilled Pork Bún",     "desc": "Caramelized pork over cold noodles with fresh herbs",       "price": 16.00, "badges": [] },
+        { "code": "V3", "name": "Shrimp & Pork Bún",   "desc": "Grilled shrimp and pork over cold vermicelli",              "price": 17.00, "badges": [] },
+        { "code": "V4", "name": "Spring Roll Bún",      "desc": "Crispy spring rolls over vermicelli with dipping sauce",    "price": 16.00, "badges": [] }
+      ]
+    },
+    {
+      "id": "rice",
+      "name": "Rice Plates (Cơm)",
+      "note": "Served with steamed jasmine rice, pickled salad & house sauce.",
+      "items": [
+        { "code": "R1", "name": "Grilled Chicken Rice",    "desc": "Lemongrass chicken with steamed rice & side salad", "price": 16.00, "badges": [] },
+        { "code": "R2", "name": "Grilled Pork Chop Rice",  "desc": "Caramelized pork chop with steamed jasmine rice",   "price": 16.00, "badges": [] },
+        { "code": "R3", "name": "Lemongrass Beef Rice",    "desc": "Wok-fried lemongrass beef over jasmine rice",       "price": 17.00, "badges": [] },
+        { "code": "R4", "name": "Shrimp Fried Rice",       "desc": "Wok-fried rice with shrimp, egg & vegetables",      "price": 17.00, "badges": [] }
+      ]
+    },
+    {
+      "id": "specialties",
+      "name": "Specialties",
+      "items": [
+        { "code": "SP1", "name": "Lemongrass Beef Stir-Fry",          "desc": "Tender beef with lemongrass, chili & vegetables over rice", "price": 18.00, "badges": ["spicy"] },
+        { "code": "SP2", "name": "Caramelized Ginger Fish",           "desc": "Vietnamese clay pot–style fish with steamed rice",          "price": 19.00, "badges": [] },
+        { "code": "SP3", "name": "Crispy Tofu Bowl",                  "desc": "Pan-fried tofu with lemongrass sauce & steamed rice",       "price": 15.00, "badges": ["veg"] },
+        { "code": "SP4", "name": "Bánh Xèo — Vietnamese Sizzling Crepe", "desc": "Crispy rice flour crepe with shrimp, pork & bean sprouts", "price": 17.00, "badges": ["signature"] }
+      ]
+    },
+    {
+      "id": "drinks",
+      "name": "Drinks",
+      "items": [
+        { "code": "D1", "name": "Cà Phê Sữa Đá — Vietnamese Iced Coffee", "desc": "Strong drip coffee with sweetened condensed milk over ice", "price": 5.00, "badges": ["signature"] },
+        { "code": "D2", "name": "Cà Phê Trứng — Egg Coffee",              "desc": "Hanoi-style whipped egg yolk & coffee — rich and silky",   "price": 6.00, "badges": ["signature"] },
+        { "code": "D3", "name": "Fresh Lemonade",                         "desc": "House-made with fresh mint",                               "price": 4.00, "badges": [] },
+        { "code": "D4", "name": "Thai Iced Tea",                          "desc": "Sweet spiced tea with milk over ice",                      "price": 5.00, "badges": [] },
+        { "code": "D5", "name": "Soft Drinks",                            "desc": "Coke, Diet Coke, Sprite, Ginger Ale",                      "price": 3.00, "badges": [] },
+        { "code": "D6", "name": "Bottled Water",                          "desc": "",                                                         "price": 2.00, "badges": [] }
+      ]
+    }
+  ],
+  "upsell_rules": [
+    { "trigger_code": "P1",  "suggest_code": "P11", "reason": "Add Big Beef Bone to any pho" },
+    { "trigger_code": "P2",  "suggest_code": "P11", "reason": "Add Big Beef Bone to any pho" },
+    { "trigger_code": "P3",  "suggest_code": "P11", "reason": "Add Big Beef Bone to any pho" },
+    { "trigger_code": "P8",  "suggest_code": "P11", "reason": "Add Big Beef Bone to any pho" },
+    { "trigger_code": "P9",  "suggest_code": "P11", "reason": "Add Big Beef Bone to any pho" },
+    { "trigger_code": "A1",  "suggest_code": "D1",  "reason": "Spring rolls pair well with Vietnamese iced coffee" },
+    { "trigger_code": "SP4", "suggest_code": "D2",  "reason": "Bánh Xèo pairs well with egg coffee" }
+  ],
+  "ai_phone": {
+    "number": "+16479322932",
+    "provider": "Zest",
+    "greeting": "Thank you for calling Dear Saigon Takeout! How can I help you today — are you looking to place a takeout order, ask about our menu, or make a reservation?",
+    "transfer_number": null,
+    "max_upsell_prompts": 2
+  }
+}
