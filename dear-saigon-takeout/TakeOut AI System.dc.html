@@ -1,0 +1,974 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Dear Saigon Takeout — AI Ordering System</title>
+  <style>
+    /* ── TOKENS ── */
+    :root {
+      --red:      #c0392b;
+      --red-dk:   #96281b;
+      --gold:     #d4a843;
+      --gold-lt:  #f5e6c0;
+      --dark:     #111111;
+      --dark2:    #1e1e1e;
+      --bg:       #faf8f4;
+      --card:     #ffffff;
+      --muted:    #6b6b6b;
+      --border:   #e8e2d9;
+      --green:    #27ae60;
+      --radius:   8px;
+      --shadow:   0 2px 12px rgba(0,0,0,.08);
+    }
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+    html { scroll-behavior: smooth; }
+    body { font-family: 'Georgia', serif; background: var(--bg); color: var(--dark); line-height: 1.5; }
+
+    /* ── AI STATUS BAR ── */
+    .ai-bar {
+      background: var(--green);
+      color: white;
+      text-align: center;
+      font-family: sans-serif;
+      font-size: 0.78rem;
+      font-weight: 600;
+      letter-spacing: 0.06em;
+      padding: 0.45rem 1rem;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 0.5rem;
+    }
+    .ai-bar .dot {
+      width: 8px; height: 8px;
+      background: white;
+      border-radius: 50%;
+      animation: pulse 1.8s infinite;
+    }
+    @keyframes pulse { 0%,100%{opacity:1} 50%{opacity:.3} }
+
+    /* ── HEADER ── */
+    header {
+      background: var(--dark);
+      color: white;
+      text-align: center;
+      padding: 2.5rem 1rem 2rem;
+      position: relative;
+    }
+    .header-eyebrow {
+      font-family: sans-serif;
+      font-size: 0.7rem;
+      letter-spacing: 0.3em;
+      text-transform: uppercase;
+      color: var(--gold);
+      margin-bottom: 0.6rem;
+    }
+    header h1 {
+      font-size: clamp(2.2rem, 7vw, 4rem);
+      font-weight: normal;
+      letter-spacing: 0.04em;
+    }
+    .header-sub {
+      font-size: 0.95rem;
+      color: #999;
+      font-style: italic;
+      margin-top: 0.4rem;
+    }
+    .header-meta {
+      margin-top: 1.4rem;
+      display: flex;
+      flex-wrap: wrap;
+      justify-content: center;
+      gap: 1.2rem;
+      font-family: sans-serif;
+      font-size: 0.82rem;
+      color: #bbb;
+    }
+    .header-meta span { display: flex; align-items: center; gap: 0.35rem; }
+
+    /* ── HOURS ── */
+    .hours-bar {
+      background: var(--gold);
+      color: var(--dark);
+      text-align: center;
+      font-family: sans-serif;
+      font-size: 0.8rem;
+      font-weight: 700;
+      padding: 0.55rem 1rem;
+      letter-spacing: 0.04em;
+    }
+
+    /* ── CALL HERO ── */
+    .call-hero {
+      background: var(--red);
+      color: white;
+      text-align: center;
+      padding: 1.6rem 1rem;
+    }
+    .call-hero p { font-family: sans-serif; font-size: 0.85rem; opacity: .85; margin-bottom: 0.5rem; }
+    .call-hero a.phone-link {
+      display: inline-flex;
+      align-items: center;
+      gap: 0.5rem;
+      font-family: sans-serif;
+      font-size: 1.9rem;
+      font-weight: 800;
+      color: white;
+      text-decoration: none;
+      letter-spacing: 0.04em;
+    }
+    .call-hero a.phone-link:hover { text-decoration: underline; }
+    .call-hero .call-sub {
+      margin-top: 0.5rem;
+      font-family: sans-serif;
+      font-size: 0.75rem;
+      opacity: .75;
+    }
+    .call-steps {
+      display: flex;
+      flex-wrap: wrap;
+      justify-content: center;
+      gap: 1.2rem;
+      margin-top: 1.2rem;
+    }
+    .call-step {
+      background: rgba(255,255,255,.15);
+      border-radius: 6px;
+      padding: 0.5rem 0.9rem;
+      font-family: sans-serif;
+      font-size: 0.78rem;
+      display: flex;
+      align-items: center;
+      gap: 0.4rem;
+    }
+    .call-step strong { font-size: 1rem; }
+
+    /* ── QR SECTION ── */
+    .qr-strip {
+      background: var(--gold-lt);
+      border-top: 1px solid var(--gold);
+      border-bottom: 1px solid var(--gold);
+      padding: 1rem;
+      text-align: center;
+      font-family: sans-serif;
+      font-size: 0.8rem;
+      color: #7a6020;
+    }
+    .qr-strip strong { display: block; font-size: 0.85rem; margin-bottom: 0.2rem; color: var(--dark); }
+
+    /* ── NAV ── */
+    nav.cat-nav {
+      position: sticky;
+      top: 0;
+      z-index: 200;
+      background: white;
+      border-bottom: 2px solid var(--border);
+      overflow-x: auto;
+      white-space: nowrap;
+      padding: 0 0.5rem;
+      -webkit-overflow-scrolling: touch;
+    }
+    nav.cat-nav a {
+      display: inline-block;
+      padding: 0.85rem 0.95rem;
+      font-family: sans-serif;
+      font-size: 0.78rem;
+      font-weight: 700;
+      text-transform: uppercase;
+      letter-spacing: 0.08em;
+      color: var(--muted);
+      text-decoration: none;
+      border-bottom: 3px solid transparent;
+      transition: color .15s, border-color .15s;
+    }
+    nav.cat-nav a:hover,
+    nav.cat-nav a.active { color: var(--red); border-bottom-color: var(--red); }
+
+    /* ── MAIN ── */
+    main { max-width: 900px; margin: 0 auto; padding: 2rem 1rem 5rem; }
+
+    /* ── SECTION ── */
+    .menu-section { margin-bottom: 3rem; scroll-margin-top: 58px; }
+    .section-header {
+      display: flex;
+      align-items: baseline;
+      gap: 0.75rem;
+      border-bottom: 1px solid var(--border);
+      padding-bottom: 0.5rem;
+      margin-bottom: 1.2rem;
+    }
+    .section-header h2 {
+      font-size: 1.4rem;
+      font-weight: normal;
+      color: var(--red);
+      letter-spacing: 0.02em;
+    }
+    .section-count {
+      font-family: sans-serif;
+      font-size: 0.72rem;
+      color: var(--muted);
+      background: var(--border);
+      padding: 0.15rem 0.5rem;
+      border-radius: 20px;
+    }
+    .section-note {
+      font-family: sans-serif;
+      font-size: 0.8rem;
+      color: var(--muted);
+      font-style: italic;
+      margin-bottom: 1rem;
+    }
+
+    /* ── GRID ── */
+    .menu-grid {
+      display: grid;
+      grid-template-columns: 1fr;
+      gap: 0.65rem;
+    }
+    @media (min-width: 560px) { .menu-grid { grid-template-columns: 1fr 1fr; } }
+    @media (min-width: 800px) { .menu-grid.wide { grid-template-columns: 1fr 1fr 1fr; } }
+
+    /* ── ITEM ── */
+    .item {
+      background: var(--card);
+      border: 1px solid var(--border);
+      border-radius: var(--radius);
+      padding: 0.9rem 1rem;
+      display: flex;
+      justify-content: space-between;
+      align-items: flex-start;
+      gap: 0.8rem;
+      transition: box-shadow .15s;
+    }
+    .item:hover { box-shadow: var(--shadow); }
+    .item.featured {
+      border-color: var(--gold);
+      background: linear-gradient(135deg, #fffdf7 0%, white 100%);
+    }
+    .item-left { flex: 1; min-width: 0; }
+    .item-code {
+      font-family: sans-serif;
+      font-size: 0.65rem;
+      color: var(--muted);
+      text-transform: uppercase;
+      letter-spacing: 0.12em;
+    }
+    .item-name {
+      font-family: sans-serif;
+      font-size: 0.9rem;
+      font-weight: 700;
+      color: var(--dark);
+      margin: 0.1rem 0 0.2rem;
+      line-height: 1.3;
+    }
+    .item-desc {
+      font-family: sans-serif;
+      font-size: 0.78rem;
+      color: var(--muted);
+      line-height: 1.4;
+    }
+    .item-badges { display: flex; gap: 0.3rem; margin-top: 0.35rem; flex-wrap: wrap; }
+    .badge {
+      font-family: sans-serif;
+      font-size: 0.62rem;
+      font-weight: 700;
+      padding: 0.12rem 0.4rem;
+      border-radius: 3px;
+      text-transform: uppercase;
+      letter-spacing: 0.05em;
+    }
+    .badge-sig  { background: #fff3cd; color: #856404; }
+    .badge-hot  { background: #fde8e8; color: #9b1c1c; }
+    .badge-veg  { background: #d1fae5; color: #065f46; }
+    .badge-new  { background: #dbeafe; color: #1e40af; }
+    .item-right { display: flex; flex-direction: column; align-items: flex-end; gap: 0.2rem; }
+    .item-price {
+      font-family: sans-serif;
+      font-size: 1rem;
+      font-weight: 800;
+      color: var(--red);
+      white-space: nowrap;
+    }
+    .item-size {
+      font-family: sans-serif;
+      font-size: 0.68rem;
+      color: var(--muted);
+      text-align: right;
+    }
+
+    /* ── UPSELL CALLOUT ── */
+    .upsell-box {
+      background: linear-gradient(135deg, #fff8e1, #fffde7);
+      border: 1px solid var(--gold);
+      border-radius: var(--radius);
+      padding: 1rem 1.2rem;
+      margin-bottom: 1.5rem;
+      font-family: sans-serif;
+      font-size: 0.82rem;
+      color: #7a6020;
+    }
+    .upsell-box strong { display: block; color: var(--dark); margin-bottom: 0.2rem; font-size: 0.88rem; }
+
+    /* ── AI INFO BOX ── */
+    .ai-info {
+      background: var(--dark2);
+      color: white;
+      border-radius: var(--radius);
+      padding: 1.2rem 1.4rem;
+      margin: 2rem 0;
+      font-family: sans-serif;
+      font-size: 0.82rem;
+    }
+    .ai-info h3 { font-size: 1rem; font-weight: 700; margin-bottom: 0.6rem; color: var(--gold); }
+    .ai-info ul { padding-left: 1.2rem; }
+    .ai-info li { margin-bottom: 0.3rem; opacity: .85; }
+
+    /* ── FOOTER ── */
+    footer {
+      background: var(--dark);
+      color: white;
+      text-align: center;
+      padding: 3rem 1rem 2rem;
+    }
+    footer h3 { font-size: 1.6rem; font-weight: normal; margin-bottom: 0.4rem; }
+    footer p { font-family: sans-serif; font-size: 0.85rem; color: #999; margin-bottom: 1.5rem; }
+    footer a.cta-btn {
+      display: inline-flex;
+      align-items: center;
+      gap: 0.5rem;
+      background: var(--red);
+      color: white;
+      font-family: sans-serif;
+      font-size: 1.05rem;
+      font-weight: 800;
+      padding: 0.9rem 2.2rem;
+      border-radius: 4px;
+      text-decoration: none;
+      letter-spacing: 0.04em;
+      transition: background .15s;
+    }
+    footer a.cta-btn:hover { background: var(--red-dk); }
+    footer .footer-details {
+      margin-top: 2rem;
+      display: flex;
+      flex-wrap: wrap;
+      justify-content: center;
+      gap: 1.5rem;
+      font-family: sans-serif;
+      font-size: 0.78rem;
+      color: #666;
+    }
+    footer .footer-details a { color: #888; text-decoration: none; }
+    footer .footer-details a:hover { color: white; }
+    .powered-by {
+      margin-top: 1.5rem;
+      font-family: sans-serif;
+      font-size: 0.7rem;
+      color: #444;
+      letter-spacing: 0.05em;
+    }
+  </style>
+</head>
+<body>
+
+<!-- AI STATUS -->
+<div class="ai-bar">
+  <span class="dot"></span>
+  AI PHONE AGENT ACTIVE — ANSWERING CALLS 24/7
+</div>
+
+<!-- HEADER -->
+<header>
+  <div class="header-eyebrow">Burlington · Vietnamese Noodle Bar</div>
+  <h1>Dear Saigon</h1>
+  <p class="header-sub">Fresh and authentic Vietnamese food in the heart of Burlington</p>
+  <div class="header-meta">
+    <span>📍 2405 Fairview St, Burlington ON L7M 1B3</span>
+    <span>📞 (647) 394-2518</span>
+    <span>🥡 Takeout · Dine-In</span>
+    <span>💳 Clover POS · Card Accepted</span>
+  </div>
+</header>
+
+<!-- HOURS -->
+<div class="hours-bar">
+  Mon–Thu 11 AM – 9 PM &nbsp;·&nbsp; Fri–Sat 11 AM – 10 PM &nbsp;·&nbsp; Sun 11 AM – 9 PM
+</div>
+
+<!-- CALL HERO -->
+<div class="call-hero">
+  <p>Browse the menu below, then call our AI phone line to place your takeout order</p>
+  <a href="tel:+16479322932" class="phone-link">📞 (647) 932-2932</a>
+  <div class="call-sub">Available 24 hours a day, 7 days a week · Average wait: &lt;10 seconds</div>
+  <div class="call-steps">
+    <div class="call-step"><strong>1.</strong> Browse menu</div>
+    <div class="call-step"><strong>2.</strong> Call the number above</div>
+    <div class="call-step"><strong>3.</strong> Tell us your order</div>
+    <div class="call-step"><strong>4.</strong> Pick up in-store &amp; pay</div>
+  </div>
+</div>
+
+<!-- QR HINT -->
+<div class="qr-strip">
+  <strong>Scanning a QR code from our table tent?</strong>
+  You're in the right place — browse below and call when ready.
+</div>
+
+<!-- CATEGORY NAV -->
+<nav class="cat-nav" id="cat-nav" aria-label="Menu categories">
+  <a href="#appetizers">Appetizers</a>
+  <a href="#pho">Pho</a>
+  <a href="#satay">Satay</a>
+  <a href="#tomyum">Tom Yum</a>
+  <a href="#padthai">Pad Thai</a>
+  <a href="#vermicelli">Vermicelli</a>
+  <a href="#rice">Rice</a>
+  <a href="#specialties">Specialties</a>
+  <a href="#drinks">Drinks</a>
+</nav>
+
+<!-- MENU -->
+<main>
+
+  <!-- AI INFO -->
+  <div class="ai-info">
+    <h3>🤖 How Our AI Phone Ordering Works</h3>
+    <ul>
+      <li>Call <strong>(647) 932-2932</strong> — our AI answers immediately, any time of day</li>
+      <li>Say your order naturally: <em>"I'd like a P9 Dear Saigon Pho and two spring rolls"</em></li>
+      <li>The AI confirms your items, gives an estimated pickup time, and sends your order to our kitchen via Clover POS</li>
+      <li>Come in, give your name, and pay at the counter — no app or account needed</li>
+    </ul>
+  </div>
+
+  <!-- APPETIZERS -->
+  <section class="menu-section" id="appetizers">
+    <div class="section-header">
+      <h2>Appetizers</h2>
+      <span class="section-count">4 items</span>
+    </div>
+    <div class="menu-grid">
+      <div class="item">
+        <div class="item-left">
+          <div class="item-code">A1</div>
+          <div class="item-name">Chả Giò — Crispy Spring Rolls</div>
+          <div class="item-desc">Golden fried rolls with pork &amp; vegetables, served with nuoc cham dipping sauce</div>
+          <div class="item-badges"><span class="badge badge-sig">Signature</span></div>
+        </div>
+        <div class="item-right">
+          <div class="item-price">$8</div>
+        </div>
+      </div>
+      <div class="item">
+        <div class="item-left">
+          <div class="item-code">A2</div>
+          <div class="item-name">Gỏi Cuốn — Fresh Rolls</div>
+          <div class="item-desc">Rice paper rolls with shrimp, pork, vermicelli &amp; fresh herbs</div>
+        </div>
+        <div class="item-right">
+          <div class="item-price">$9</div>
+          <div class="item-size">2 per order</div>
+        </div>
+      </div>
+      <div class="item">
+        <div class="item-left">
+          <div class="item-code">A3</div>
+          <div class="item-name">Satay Chicken Skewers</div>
+          <div class="item-desc">Grilled chicken skewers with peanut satay dipping sauce</div>
+        </div>
+        <div class="item-right">
+          <div class="item-price">$10</div>
+        </div>
+      </div>
+      <div class="item">
+        <div class="item-left">
+          <div class="item-code">A4</div>
+          <div class="item-name">Soup of the Day</div>
+          <div class="item-desc">Ask our AI agent or call the restaurant for today's selection</div>
+        </div>
+        <div class="item-right">
+          <div class="item-price">Ask</div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- PHO -->
+  <section class="menu-section" id="pho">
+    <div class="section-header">
+      <h2>Pho — Vietnamese Noodle Soup</h2>
+      <span class="section-count">10 items</span>
+    </div>
+    <p class="section-note">Served with bean sprouts, Thai basil, lime &amp; jalapeño. Available Regular or Large (+$2).</p>
+    <div class="upsell-box">
+      <strong>💡 AI Suggestion</strong>
+      When you call, ask about adding a Big Beef Bone (P11 · +$4) to any pho — it's a customer favourite.
+    </div>
+    <div class="menu-grid">
+      <div class="item">
+        <div class="item-left">
+          <div class="item-code">P1</div>
+          <div class="item-name">Rare Beef Pho (Tái)</div>
+          <div class="item-desc">Thinly sliced rare beef in rich slow-cooked bone broth</div>
+        </div>
+        <div class="item-right"><div class="item-price">$17</div></div>
+      </div>
+      <div class="item">
+        <div class="item-left">
+          <div class="item-code">P2</div>
+          <div class="item-name">Beef Brisket Pho (Chín)</div>
+          <div class="item-desc">Well-done brisket, tender and rich</div>
+        </div>
+        <div class="item-right"><div class="item-price">$17</div></div>
+      </div>
+      <div class="item">
+        <div class="item-left">
+          <div class="item-code">P3</div>
+          <div class="item-name">Rare Beef &amp; Brisket</div>
+          <div class="item-desc">Best of both — tái and chín combination</div>
+          <div class="item-badges"><span class="badge badge-sig">Popular</span></div>
+        </div>
+        <div class="item-right"><div class="item-price">$18</div></div>
+      </div>
+      <div class="item">
+        <div class="item-left">
+          <div class="item-code">P4</div>
+          <div class="item-name">Beef Meatball Pho (Bò Viên)</div>
+          <div class="item-desc">Bouncy Vietnamese-style beef meatballs</div>
+        </div>
+        <div class="item-right"><div class="item-price">$17</div></div>
+      </div>
+      <div class="item">
+        <div class="item-left">
+          <div class="item-code">P5</div>
+          <div class="item-name">Chicken Pho (Gà)</div>
+          <div class="item-desc">Poached chicken in light golden broth</div>
+        </div>
+        <div class="item-right"><div class="item-price">$16</div></div>
+      </div>
+      <div class="item">
+        <div class="item-left">
+          <div class="item-code">P6</div>
+          <div class="item-name">Vegetarian Pho (Chay)</div>
+          <div class="item-desc">Tofu &amp; mixed vegetables in fragrant vegetable broth</div>
+          <div class="item-badges"><span class="badge badge-veg">Veg</span></div>
+        </div>
+        <div class="item-right"><div class="item-price">$15</div></div>
+      </div>
+      <div class="item featured">
+        <div class="item-left">
+          <div class="item-code">P8</div>
+          <div class="item-name">House Special Pho</div>
+          <div class="item-desc">Rare beef, brisket, tendon &amp; meatball — the full combination</div>
+          <div class="item-badges"><span class="badge badge-sig">House Favourite</span></div>
+        </div>
+        <div class="item-right"><div class="item-price">$20</div></div>
+      </div>
+      <div class="item featured">
+        <div class="item-left">
+          <div class="item-code">P9</div>
+          <div class="item-name">Dear Saigon Pho</div>
+          <div class="item-desc">Our signature bowl — chef's special combination with premium cuts</div>
+          <div class="item-badges"><span class="badge badge-sig">Signature</span></div>
+        </div>
+        <div class="item-right"><div class="item-price">$21</div></div>
+      </div>
+      <div class="item">
+        <div class="item-left">
+          <div class="item-code">P10</div>
+          <div class="item-name">Bún Bò Huế</div>
+          <div class="item-desc">Spicy lemongrass beef noodle soup, Central Vietnam style</div>
+          <div class="item-badges"><span class="badge badge-hot">Spicy</span></div>
+        </div>
+        <div class="item-right"><div class="item-price">$18</div></div>
+      </div>
+      <div class="item">
+        <div class="item-left">
+          <div class="item-code">P11</div>
+          <div class="item-name">Big Beef Bone Add-On</div>
+          <div class="item-desc">Large beef bone added to any pho order</div>
+        </div>
+        <div class="item-right"><div class="item-price">+$4</div></div>
+      </div>
+    </div>
+  </section>
+
+  <!-- SATAY -->
+  <section class="menu-section" id="satay">
+    <div class="section-header">
+      <h2>Satay Noodle Soup</h2>
+      <span class="section-count">4 items</span>
+    </div>
+    <p class="section-note">Rich coconut peanut broth with rice noodles. A Dear Saigon favourite.</p>
+    <div class="menu-grid">
+      <div class="item">
+        <div class="item-left">
+          <div class="item-code">S1</div>
+          <div class="item-name">Beef Satay Noodle Soup</div>
+          <div class="item-desc">Sliced beef in creamy peanut-coconut satay broth</div>
+        </div>
+        <div class="item-right"><div class="item-price">$18</div></div>
+      </div>
+      <div class="item">
+        <div class="item-left">
+          <div class="item-code">S2</div>
+          <div class="item-name">Chicken Satay Noodle Soup</div>
+          <div class="item-desc">Tender chicken in coconut peanut broth</div>
+        </div>
+        <div class="item-right"><div class="item-price">$17</div></div>
+      </div>
+      <div class="item">
+        <div class="item-left">
+          <div class="item-code">S3</div>
+          <div class="item-name">Shrimp Satay Noodle Soup</div>
+          <div class="item-desc">Plump shrimp in rich satay broth</div>
+        </div>
+        <div class="item-right"><div class="item-price">$18</div></div>
+      </div>
+      <div class="item">
+        <div class="item-left">
+          <div class="item-code">S4</div>
+          <div class="item-name">Mixed Satay Noodle Soup</div>
+          <div class="item-desc">Beef, chicken &amp; shrimp combination</div>
+          <div class="item-badges"><span class="badge badge-sig">Popular</span></div>
+        </div>
+        <div class="item-right"><div class="item-price">$20</div></div>
+      </div>
+    </div>
+  </section>
+
+  <!-- TOM YUM -->
+  <section class="menu-section" id="tomyum">
+    <div class="section-header">
+      <h2>Tom Yum</h2>
+      <span class="section-count">3 items</span>
+    </div>
+    <p class="section-note">Aromatic hot &amp; sour broth with lemongrass, kaffir lime &amp; galangal.</p>
+    <div class="menu-grid">
+      <div class="item">
+        <div class="item-left">
+          <div class="item-code">T1</div>
+          <div class="item-name">Shrimp Tom Yum</div>
+          <div class="item-desc">Plump shrimp in spicy lemongrass broth with mushrooms &amp; tomato</div>
+          <div class="item-badges"><span class="badge badge-hot">Spicy</span></div>
+        </div>
+        <div class="item-right"><div class="item-price">$18</div></div>
+      </div>
+      <div class="item">
+        <div class="item-left">
+          <div class="item-code">T2</div>
+          <div class="item-name">Chicken Tom Yum</div>
+          <div class="item-desc">Tender chicken in fragrant hot &amp; sour broth</div>
+          <div class="item-badges"><span class="badge badge-hot">Spicy</span></div>
+        </div>
+        <div class="item-right"><div class="item-price">$17</div></div>
+      </div>
+      <div class="item">
+        <div class="item-left">
+          <div class="item-code">T3</div>
+          <div class="item-name">Mixed Seafood Tom Yum</div>
+          <div class="item-desc">Shrimp, squid &amp; fish in lemongrass broth</div>
+          <div class="item-badges"><span class="badge badge-hot">Spicy</span></div>
+        </div>
+        <div class="item-right"><div class="item-price">$20</div></div>
+      </div>
+    </div>
+  </section>
+
+  <!-- PAD THAI -->
+  <section class="menu-section" id="padthai">
+    <div class="section-header">
+      <h2>Pad Thai</h2>
+      <span class="section-count">4 items</span>
+    </div>
+    <p class="section-note">Wok-fried rice noodles with egg, bean sprouts, peanuts &amp; tamarind sauce.</p>
+    <div class="menu-grid">
+      <div class="item">
+        <div class="item-left">
+          <div class="item-code">PT1</div>
+          <div class="item-name">Chicken Pad Thai</div>
+          <div class="item-desc">Classic pad thai with tender wok-charred chicken</div>
+        </div>
+        <div class="item-right"><div class="item-price">$17</div></div>
+      </div>
+      <div class="item">
+        <div class="item-left">
+          <div class="item-code">PT2</div>
+          <div class="item-name">Shrimp Pad Thai</div>
+          <div class="item-desc">Wok-fried rice noodles with fresh shrimp</div>
+        </div>
+        <div class="item-right"><div class="item-price">$18</div></div>
+      </div>
+      <div class="item">
+        <div class="item-left">
+          <div class="item-code">PT3</div>
+          <div class="item-name">Beef Pad Thai</div>
+          <div class="item-desc">Wok-fried noodles with sliced marinated beef</div>
+        </div>
+        <div class="item-right"><div class="item-price">$18</div></div>
+      </div>
+      <div class="item">
+        <div class="item-left">
+          <div class="item-code">PT4</div>
+          <div class="item-name">Vegetarian Pad Thai</div>
+          <div class="item-desc">With crispy tofu, egg &amp; seasonal vegetables</div>
+          <div class="item-badges"><span class="badge badge-veg">Veg</span></div>
+        </div>
+        <div class="item-right"><div class="item-price">$15</div></div>
+      </div>
+    </div>
+  </section>
+
+  <!-- VERMICELLI -->
+  <section class="menu-section" id="vermicelli">
+    <div class="section-header">
+      <h2>Vermicelli Bowls (Bún)</h2>
+      <span class="section-count">4 items</span>
+    </div>
+    <p class="section-note">Cold rice vermicelli with fresh herbs, pickled daikon &amp; fish sauce dressing.</p>
+    <div class="menu-grid">
+      <div class="item">
+        <div class="item-left">
+          <div class="item-code">V1</div>
+          <div class="item-name">Grilled Chicken Bún</div>
+          <div class="item-desc">Lemongrass-marinated grilled chicken over rice vermicelli</div>
+        </div>
+        <div class="item-right"><div class="item-price">$16</div></div>
+      </div>
+      <div class="item">
+        <div class="item-left">
+          <div class="item-code">V2</div>
+          <div class="item-name">Grilled Pork Bún</div>
+          <div class="item-desc">Caramelized pork over cold noodles with fresh herbs</div>
+        </div>
+        <div class="item-right"><div class="item-price">$16</div></div>
+      </div>
+      <div class="item">
+        <div class="item-left">
+          <div class="item-code">V3</div>
+          <div class="item-name">Shrimp &amp; Pork Bún</div>
+          <div class="item-desc">Grilled shrimp and pork over cold vermicelli</div>
+        </div>
+        <div class="item-right"><div class="item-price">$17</div></div>
+      </div>
+      <div class="item">
+        <div class="item-left">
+          <div class="item-code">V4</div>
+          <div class="item-name">Spring Roll Bún</div>
+          <div class="item-desc">Crispy spring rolls over vermicelli with dipping sauce</div>
+        </div>
+        <div class="item-right"><div class="item-price">$16</div></div>
+      </div>
+    </div>
+  </section>
+
+  <!-- RICE -->
+  <section class="menu-section" id="rice">
+    <div class="section-header">
+      <h2>Rice Plates (Cơm)</h2>
+      <span class="section-count">4 items</span>
+    </div>
+    <p class="section-note">Served with steamed jasmine rice, pickled salad &amp; house sauce.</p>
+    <div class="menu-grid">
+      <div class="item">
+        <div class="item-left">
+          <div class="item-code">R1</div>
+          <div class="item-name">Grilled Chicken Rice</div>
+          <div class="item-desc">Lemongrass chicken with steamed rice &amp; side salad</div>
+        </div>
+        <div class="item-right"><div class="item-price">$16</div></div>
+      </div>
+      <div class="item">
+        <div class="item-left">
+          <div class="item-code">R2</div>
+          <div class="item-name">Grilled Pork Chop Rice</div>
+          <div class="item-desc">Caramelized pork chop with steamed jasmine rice</div>
+        </div>
+        <div class="item-right"><div class="item-price">$16</div></div>
+      </div>
+      <div class="item">
+        <div class="item-left">
+          <div class="item-code">R3</div>
+          <div class="item-name">Lemongrass Beef Rice</div>
+          <div class="item-desc">Wok-fried lemongrass beef over jasmine rice</div>
+        </div>
+        <div class="item-right"><div class="item-price">$17</div></div>
+      </div>
+      <div class="item">
+        <div class="item-left">
+          <div class="item-code">R4</div>
+          <div class="item-name">Shrimp Fried Rice</div>
+          <div class="item-desc">Wok-fried rice with shrimp, egg &amp; vegetables</div>
+        </div>
+        <div class="item-right"><div class="item-price">$17</div></div>
+      </div>
+    </div>
+  </section>
+
+  <!-- SPECIALTIES -->
+  <section class="menu-section" id="specialties">
+    <div class="section-header">
+      <h2>Specialties</h2>
+      <span class="section-count">4 items</span>
+    </div>
+    <div class="menu-grid">
+      <div class="item">
+        <div class="item-left">
+          <div class="item-code">SP1</div>
+          <div class="item-name">Lemongrass Beef Stir-Fry</div>
+          <div class="item-desc">Tender beef with lemongrass, chili &amp; vegetables over rice</div>
+          <div class="item-badges"><span class="badge badge-hot">Spicy</span></div>
+        </div>
+        <div class="item-right"><div class="item-price">$18</div></div>
+      </div>
+      <div class="item">
+        <div class="item-left">
+          <div class="item-code">SP2</div>
+          <div class="item-name">Caramelized Ginger Fish</div>
+          <div class="item-desc">Vietnamese clay pot–style fish with steamed rice</div>
+        </div>
+        <div class="item-right"><div class="item-price">$19</div></div>
+      </div>
+      <div class="item">
+        <div class="item-left">
+          <div class="item-code">SP3</div>
+          <div class="item-name">Crispy Tofu Bowl</div>
+          <div class="item-desc">Pan-fried tofu with lemongrass sauce &amp; steamed rice</div>
+          <div class="item-badges"><span class="badge badge-veg">Veg</span></div>
+        </div>
+        <div class="item-right"><div class="item-price">$15</div></div>
+      </div>
+      <div class="item featured">
+        <div class="item-left">
+          <div class="item-code">SP4</div>
+          <div class="item-name">Bánh Xèo — Vietnamese Sizzling Crepe</div>
+          <div class="item-desc">Crispy rice flour crepe filled with shrimp, pork &amp; bean sprouts</div>
+          <div class="item-badges"><span class="badge badge-sig">Must Try</span></div>
+        </div>
+        <div class="item-right"><div class="item-price">$17</div></div>
+      </div>
+    </div>
+  </section>
+
+  <!-- DRINKS -->
+  <section class="menu-section" id="drinks">
+    <div class="section-header">
+      <h2>Drinks</h2>
+      <span class="section-count">6 items</span>
+    </div>
+    <div class="menu-grid">
+      <div class="item featured">
+        <div class="item-left">
+          <div class="item-name">Cà Phê Sữa Đá — Vietnamese Iced Coffee</div>
+          <div class="item-desc">Strong drip coffee with sweetened condensed milk over ice</div>
+          <div class="item-badges"><span class="badge badge-sig">Signature</span></div>
+        </div>
+        <div class="item-right"><div class="item-price">$5</div></div>
+      </div>
+      <div class="item featured">
+        <div class="item-left">
+          <div class="item-name">Cà Phê Trứng — Egg Coffee</div>
+          <div class="item-desc">Hanoi-style whipped egg yolk &amp; coffee — rich and silky</div>
+          <div class="item-badges"><span class="badge badge-sig">Signature</span></div>
+        </div>
+        <div class="item-right"><div class="item-price">$6</div></div>
+      </div>
+      <div class="item">
+        <div class="item-left">
+          <div class="item-name">Fresh Lemonade</div>
+          <div class="item-desc">House-made with fresh mint</div>
+        </div>
+        <div class="item-right"><div class="item-price">$4</div></div>
+      </div>
+      <div class="item">
+        <div class="item-left">
+          <div class="item-name">Thai Iced Tea</div>
+          <div class="item-desc">Sweet spiced tea with milk over ice</div>
+        </div>
+        <div class="item-right"><div class="item-price">$5</div></div>
+      </div>
+      <div class="item">
+        <div class="item-left">
+          <div class="item-name">Soft Drinks</div>
+          <div class="item-desc">Coke · Diet Coke · Sprite · Ginger Ale</div>
+        </div>
+        <div class="item-right"><div class="item-price">$3</div></div>
+      </div>
+      <div class="item">
+        <div class="item-left">
+          <div class="item-name">Bottled Water</div>
+          <div class="item-desc"></div>
+        </div>
+        <div class="item-right"><div class="item-price">$2</div></div>
+      </div>
+    </div>
+  </section>
+
+</main>
+
+<!-- FOOTER -->
+<footer>
+  <h3>Ready to order?</h3>
+  <p>Call our AI line — it's faster than waiting on hold, and available around the clock</p>
+  <a href="tel:+16479322932" class="cta-btn">📞 Call to Order: (647) 932-2932</a>
+  <div class="footer-details">
+    <span>📍 2405 Fairview St, Burlington ON L7M 1B3</span>
+    <span>☎️ Dine-in reservations: <a href="tel:+16473942518">(647) 394-2518</a></span>
+    <span><a href="https://dearsaigon.com" target="_blank" rel="noopener">dearsaigon.com</a></span>
+    <span>🏦 Clover POS · Cards Accepted</span>
+  </div>
+  <div class="powered-by">AI PHONE ORDERING POWERED BY ZEST · USEZEST.CA</div>
+</footer>
+
+<script>
+  /* Scrollspy — highlight active nav tab and auto-scroll it into view */
+  const sections = document.querySelectorAll('.menu-section');
+  const navLinks = document.querySelectorAll('nav.cat-nav a');
+
+  const io = new IntersectionObserver(entries => {
+    entries.forEach(e => {
+      if (!e.isIntersecting) return;
+      navLinks.forEach(a => a.classList.remove('active'));
+      const link = document.querySelector(`nav a[href="#${e.target.id}"]`);
+      if (link) {
+        link.classList.add('active');
+        link.scrollIntoView({ behavior: 'smooth', block: 'nearest', inline: 'center' });
+      }
+    });
+  }, { rootMargin: '-35% 0px -60% 0px' });
+
+  sections.forEach(s => io.observe(s));
+
+  /* Show current open/closed status based on client-side time (Ontario / EST) */
+  (function() {
+    const hours = {
+      0: [11, 21], // Sun
+      1: [11, 21], // Mon
+      2: [11, 21], // Tue
+      3: [11, 21], // Wed
+      4: [11, 21], // Thu
+      5: [11, 22], // Fri
+      6: [11, 22], // Sat
+    };
+    const now = new Date(new Date().toLocaleString('en-US', { timeZone: 'America/Toronto' }));
+    const day = now.getDay();
+    const h = now.getHours() + now.getMinutes() / 60;
+    const [open, close] = hours[day];
+    const isOpen = h >= open && h < close;
+    const bar = document.querySelector('.hours-bar');
+    if (bar) {
+      const badge = document.createElement('span');
+      badge.style.cssText = `
+        display:inline-block; margin-left:1rem; font-size:.75rem; font-weight:800;
+        padding:.15rem .55rem; border-radius:3px; vertical-align:middle;
+        background:${isOpen ? '#27ae60' : '#c0392b'}; color:white;
+      `;
+      badge.textContent = isOpen ? 'OPEN NOW' : 'CLOSED';
+      bar.appendChild(badge);
+    }
+  })();
+</script>
+
+</body>
+</html>
