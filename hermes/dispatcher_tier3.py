@@ -12,6 +12,7 @@ Run:
     python dispatcher_tier3.py
 """
 
+import hmac
 import os
 import threading
 import time
@@ -27,6 +28,12 @@ POLL_INTERVAL_SECONDS = 30
 app = Flask(__name__)
 client: NotionClient | None = None
 max_parallel_tasks = 3
+webhook_secret: str | None = None
+
+# Serializes dispatch_tasks so the webhook thread and the background poll
+# loop can't both read a stale running-task count and jointly exceed
+# max_parallel_tasks.
+dispatch_lock = threading.Lock()
 
 
 def running_task_count() -> int:
@@ -34,28 +41,35 @@ def running_task_count() -> int:
 
 
 def dispatch_tasks() -> int:
-    available_slots = max_parallel_tasks - running_task_count()
-    if available_slots <= 0:
-        log(f"Max parallel tasks reached ({max_parallel_tasks})")
-        return 0
+    with dispatch_lock:
+        available_slots = max_parallel_tasks - running_task_count()
+        if available_slots <= 0:
+            log(f"Max parallel tasks reached ({max_parallel_tasks})")
+            return 0
 
-    pending = client.query_tasks("Pending", limit=available_slots)
-    if not pending:
-        return 0
+        pending = client.query_tasks("Pending", limit=available_slots)
+        if not pending:
+            return 0
 
-    dispatched = 0
-    for raw_task in pending:
-        task = task_details(raw_task)
-        log(f"Dispatching '{task['name']}' (Cost: {task['cost']}, Pipeline: {task['pipeline']})")
-        client.update_status(task["id"], "Running")
-        log(f"Started '{task['name']}'")
-        dispatched += 1
+        dispatched = 0
+        for raw_task in pending:
+            task = task_details(raw_task)
+            log(f"Dispatching '{task['name']}' (Cost: {task['cost']}, Pipeline: {task['pipeline']})")
+            client.update_status(task["id"], "Running")
+            log(f"Started '{task['name']}'")
+            dispatched += 1
 
-    return dispatched
+        return dispatched
 
 
 @app.route("/webhook", methods=["POST"])
 def webhook_handler():
+    if webhook_secret:
+        provided = request.headers.get("X-Webhook-Secret", "")
+        if not hmac.compare_digest(provided, webhook_secret):
+            log("Webhook rejected: invalid or missing X-Webhook-Secret")
+            return jsonify({"status": "unauthorized"}), 401
+
     log(f"Webhook received: {request.json}")
     threading.Thread(target=dispatch_tasks, daemon=True).start()
     return jsonify({"status": "accepted"}), 202
@@ -87,13 +101,17 @@ def continuous_dispatcher() -> None:
 
 
 def main() -> None:
-    global client, max_parallel_tasks
+    global client, max_parallel_tasks, webhook_secret
 
     load_dotenv()
     env = require_env("NOTION_TOKEN", "DATABASE_ID")
     client = NotionClient(env["NOTION_TOKEN"], env["DATABASE_ID"])
     max_parallel_tasks = int(os.getenv("MAX_PARALLEL_TASKS", "3"))
     webhook_port = int(os.getenv("WEBHOOK_PORT", "5000"))
+    webhook_secret = os.getenv("WEBHOOK_SECRET")
+
+    if not webhook_secret:
+        log("WARNING: WEBHOOK_SECRET is not set - /webhook is unauthenticated")
 
     log("Hermes Tier 3 dispatcher started")
     log(f"Database: {env['DATABASE_ID']}, max parallel tasks: {max_parallel_tasks}")

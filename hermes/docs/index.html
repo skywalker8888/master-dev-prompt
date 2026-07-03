@@ -157,10 +157,12 @@ python dispatcher_tier3.py   # Tier 3, webhook + 30s polling fallback</div>
     <div class="code-block">NOTION_TOKEN         Notion integration token
 DATABASE_ID          Hermes database ID
 WEBHOOK_PORT         Port for the Tier 3 webhook server (default 5000)
-MAX_PARALLEL_TASKS   Max concurrent Running tasks for Tier 3 (default 3)</div>
+MAX_PARALLEL_TASKS   Max concurrent Running tasks for Tier 3 (default 3)
+WEBHOOK_SECRET       Shared secret required on POST /webhook (Tier 3)</div>
 
     <h3>Tier 3 Endpoints</h3>
     <div class="code-block">POST /webhook   Trigger an immediate dispatch pass
+                Requires header: X-Webhook-Secret: &lt;WEBHOOK_SECRET&gt;
 GET  /status    Health check: running task count, max parallel, timestamp</div>
   </section>
 
