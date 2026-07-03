@@ -34,6 +34,12 @@ def dispatch_next_task(client: NotionClient) -> None:
     task = min(pending, key=lambda t: t["cost"])
     log(f"Found task: '{task['name']}' (Type: {task['type']}, Cost: {task['cost']})")
 
+    # Re-check status: someone may have edited this task in Notion between
+    # the query above and now.
+    if client.get_status(task["id"]) != "pending":
+        log(f"Skipped '{task['name']}': status changed before dispatch")
+        return
+
     client.update_status(task["id"], "running")
     log(f"Task '{task['name']}' moved to running")
 

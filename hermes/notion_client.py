@@ -81,15 +81,31 @@ class NotionClient:
             data = response.json()
 
             results.extend(data.get("results", []))
-            if not data.get("has_more"):
+            next_cursor = data.get("next_cursor")
+            # Treat has_more=True with a missing/empty next_cursor as the end
+            # of the results rather than looping on the same page forever.
+            if not data.get("has_more") or not next_cursor:
                 return results
-            cursor = data.get("next_cursor")
+            cursor = next_cursor
 
     def update_status(self, page_id: str, new_status: str) -> None:
         url = f"https://api.notion.com/v1/pages/{page_id}"
         payload = {"properties": {"Status": {"select": {"name": new_status}}}}
         response = requests.patch(url, headers=self.headers, json=payload, timeout=30)
         response.raise_for_status()
+
+    def get_status(self, page_id: str) -> str | None:
+        """Fetch a page's current Status value.
+
+        Used to re-check a task right before dispatching it, since the
+        pending-task list is a snapshot that can go stale if someone edits
+        the page in Notion while a dispatch pass is in flight.
+        """
+        url = f"https://api.notion.com/v1/pages/{page_id}"
+        response = requests.get(url, headers=self.headers, timeout=30)
+        response.raise_for_status()
+        select = response.json().get("properties", {}).get("Status", {}).get("select")
+        return select.get("name") if select else None
 
 
 def task_cost(task_type: str | None) -> int:

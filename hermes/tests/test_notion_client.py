@@ -89,6 +89,42 @@ def test_query_all_tasks_stops_after_single_page():
         assert mock_post.call_count == 1
 
 
+def test_query_all_tasks_stops_if_has_more_but_no_next_cursor():
+    """Guards against an infinite loop if Notion ever returns a malformed
+    has_more=True response with no cursor to page from."""
+    client = _client()
+    response = MagicMock()
+    response.raise_for_status.return_value = None
+    response.json.return_value = {"results": [{"id": "a"}], "has_more": True, "next_cursor": None}
+
+    with patch("notion_client.requests.post", return_value=response) as mock_post:
+        results = client.query_all_tasks("pending")
+
+        assert results == [{"id": "a"}]
+        assert mock_post.call_count == 1
+
+
+def test_get_status_returns_status_name():
+    client = _client()
+    response = MagicMock()
+    response.raise_for_status.return_value = None
+    response.json.return_value = {"properties": {"Status": {"select": {"name": "pending"}}}}
+
+    with patch("notion_client.requests.get", return_value=response) as mock_get:
+        assert client.get_status("page123") == "pending"
+        assert mock_get.call_args[0][0] == "https://api.notion.com/v1/pages/page123"
+
+
+def test_get_status_returns_none_when_status_missing():
+    client = _client()
+    response = MagicMock()
+    response.raise_for_status.return_value = None
+    response.json.return_value = {"properties": {}}
+
+    with patch("notion_client.requests.get", return_value=response):
+        assert client.get_status("page123") is None
+
+
 def test_update_status_patches_correct_page():
     client = _client()
     response = MagicMock()

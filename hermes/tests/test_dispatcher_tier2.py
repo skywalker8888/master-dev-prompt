@@ -21,6 +21,7 @@ def _task(task_id="page1", name="Write blog post", task_type="automation"):
 def test_dispatch_next_task_starts_only_pending_task():
     client = MagicMock()
     client.query_all_tasks.return_value = [_task()]
+    client.get_status.return_value = "pending"
 
     dispatch_next_task(client)
 
@@ -30,6 +31,7 @@ def test_dispatch_next_task_starts_only_pending_task():
 
 def test_dispatch_next_task_picks_cheapest_of_several_pending_tasks():
     client = MagicMock()
+    client.get_status.return_value = "pending"
     # content (cost 7) is queried before automation (cost 1); the cheaper one
     # must still win since there's no server-side Cost sort to rely on.
     client.query_all_tasks.return_value = [
@@ -45,6 +47,17 @@ def test_dispatch_next_task_picks_cheapest_of_several_pending_tasks():
 def test_dispatch_next_task_does_nothing_when_queue_is_empty():
     client = MagicMock()
     client.query_all_tasks.return_value = []
+
+    dispatch_next_task(client)
+
+    client.update_status.assert_not_called()
+
+
+def test_dispatch_next_task_skips_if_status_changed_before_dispatch():
+    client = MagicMock()
+    client.query_all_tasks.return_value = [_task()]
+    # Someone completed/cancelled it in Notion between the query and now.
+    client.get_status.return_value = "completed"
 
     dispatch_next_task(client)
 

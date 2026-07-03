@@ -81,6 +81,12 @@ def dispatch_tasks() -> int:
 
         dispatched = 0
         for task in pending[:available_slots]:
+            # Re-check status: someone may have edited this task in Notion
+            # between the query above and now.
+            if client.get_status(task["id"]) != "pending":
+                log(f"Skipped '{task['name']}': status changed before dispatch")
+                continue
+
             log(f"Dispatching '{task['name']}' (Type: {task['type']}, Cost: {task['cost']})")
             client.update_status(task["id"], "running")
             log(f"Started '{task['name']}'")
