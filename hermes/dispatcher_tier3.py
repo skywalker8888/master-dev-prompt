@@ -48,7 +48,7 @@ dispatch_lock = threading.Lock()
 
 
 def running_task_count(limit: int | None = None) -> int:
-    return len(client.query_tasks("Running", limit=limit))
+    return len(client.query_tasks("running", limit=limit))
 
 
 def verify_notion_signature(raw_body: bytes, signature_header: str | None, secret: str) -> bool:
@@ -68,15 +68,18 @@ def dispatch_tasks() -> int:
             log(f"Max parallel tasks reached ({max_parallel_tasks})")
             return 0
 
-        pending = client.query_tasks("Pending", limit=available_slots)
+        # The live database has no Cost property to sort by server-side, so
+        # fetch a page of pending tasks and pick the cheapest ones client-side.
+        pending = [task_details(raw) for raw in client.query_tasks("pending")]
         if not pending:
             return 0
 
+        pending.sort(key=lambda t: t["cost"])
+
         dispatched = 0
-        for raw_task in pending:
-            task = task_details(raw_task)
-            log(f"Dispatching '{task['name']}' (Cost: {task['cost']}, Pipeline: {task['pipeline']})")
-            client.update_status(task["id"], "Running")
+        for task in pending[:available_slots]:
+            log(f"Dispatching '{task['name']}' (Type: {task['type']}, Cost: {task['cost']})")
+            client.update_status(task["id"], "running")
             log(f"Started '{task['name']}'")
             dispatched += 1
 

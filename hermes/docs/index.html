@@ -61,7 +61,7 @@
       </div>
       <div class="card">
         <h4>Automated Routing</h4>
-        <p>Tasks flow through specialized pipelines (Automation, Research, Report, Content) without manual intervention.</p>
+        <p>Tasks flow through specialized types (automation, research, report, content) without manual intervention.</p>
       </div>
       <div class="card">
         <h4>Centralized Tracking</h4>
@@ -82,6 +82,7 @@
           <li>Button-click dispatch</li>
           <li>Zero code</li>
           <li>Requires a human to click</li>
+          <li>FIFO only (no cheapest-first)</li>
         </ul>
       </div>
       <div class="tier-card tier-2-card">
@@ -110,36 +111,36 @@
   <section id="setup" class="section">
     <h2>Detailed Setup Guide</h2>
     <h3>Notion Database Properties</h3>
+    <p>This matches the live <strong>🧠 Hermes Tasks</strong> database. There is no <code>Cost</code> property in Notion &mdash; cheapest-first priority is computed in Python from <code>Type</code> (see <code>TYPE_COST</code> in <code>notion_client.py</code>), so only Tier 2/3 apply it. Tier 1's button can only sort by a real property, so it runs FIFO instead.</p>
     <div class="code-block">Task Name    Title
-Status       Select: Pending, Running, Completed
-Pipeline     Select: Automation, Research, Report, Content
-Cost         Formula (see README.md for the exact expression)
-Notes        Text
-Created Time Created time
-Created By   Created by</div>
+Status       Select: pending, running, completed, failed
+Type         Select: automation, research, report, content
+Input Data   Text
+Output       Text
+Created At   Date</div>
 
-    <h3>Dispatcher Button</h3>
+    <h3>Dispatcher Button (Tier 1, FIFO)</h3>
     <div class="code-block">Button Name: "Start Next Task"
 
 Step 1: Find pages
-  Database: Hermes Task Manager
-  Filter: Status is Pending
-  Sort: Cost ascending
+  Database: Hermes Tasks
+  Filter: Status is pending
+  Sort: Created At ascending
   Limit: 1 page
 
 Step 2: Edit pages
   Property: Status
-  Set to: Running</div>
+  Set to: running</div>
 
     <h3>Automation</h3>
     <div class="code-block">Automation Name: "Auto-Complete Automation Tasks"
 
 Trigger:
-  Status is set to Running
-  Pipeline is Automation
+  Status is set to running
+  Type is automation
 
 Action:
-  Set Status to Completed</div>
+  Set Status to completed</div>
 
     <p>Full step-by-step instructions live in <code>README.md</code> in this directory.</p>
   </section>
@@ -157,7 +158,7 @@ python3 dispatcher_tier3.py   # Tier 3, webhook + 30s polling fallback</div>
     <div class="code-block">NOTION_TOKEN          Notion integration token
 DATABASE_ID           Hermes database ID
 WEBHOOK_PORT          Port for the Tier 3 webhook server (default 5000)
-MAX_PARALLEL_TASKS    Max concurrent Running tasks for Tier 3 (default 3)
+MAX_PARALLEL_TASKS    Max concurrent running tasks for Tier 3 (default 3)
 WEBHOOK_SECRET        Shared secret for a generic caller on POST /webhook
 NOTION_WEBHOOK_SECRET Notion's verification_token, used to check the
                       X-Notion-Signature HMAC on real Notion webhook events
@@ -176,23 +177,23 @@ GET  /status    Health check: running task count, max parallel, timestamp</div>
     <div class="card-grid">
       <div class="card">
         <h4>Button doesn't work</h4>
-        <p>Check that the filter is Status = Pending and the sort is Cost ascending.</p>
+        <p>Check that the filter is Status = pending and the sort is Created At ascending.</p>
       </div>
       <div class="card">
         <h4>Automation not triggering</h4>
-        <p>Verify both conditions: Status = Running AND Pipeline = Automation.</p>
+        <p>Verify both conditions: Status = running AND Type = automation.</p>
       </div>
       <div class="card">
-        <h4>Cost formula shows an error</h4>
-        <p>Make sure Pipeline is a Select property with the exact option names used in the formula.</p>
+        <h4>Dispatcher picks the wrong task</h4>
+        <p>Make sure Type is a Select property with exactly these option names: automation, research, report, content. Cost is computed from these in code (<code>TYPE_COST</code>), not read from Notion.</p>
       </div>
       <div class="card">
         <h4>Script can't connect</h4>
         <p>Check NOTION_TOKEN and DATABASE_ID in .env, and confirm the database is shared with the integration.</p>
       </div>
       <div class="card">
-        <h4>Tasks stuck in Running</h4>
-        <p>Non-Automation pipelines need to be completed manually or via an additional automation.</p>
+        <h4>Tasks stuck in running</h4>
+        <p>Non-automation types need to be completed manually or via an additional automation.</p>
       </div>
     </div>
   </section>

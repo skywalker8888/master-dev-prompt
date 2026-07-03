@@ -8,6 +8,17 @@ import requests
 NOTION_VERSION = "2022-06-28"
 MAX_PAGE_SIZE = 100
 
+# The live Hermes Tasks database has no Cost formula property, so cost-by-type
+# is computed here in code instead of read from Notion. Keys match the live
+# database's "Type" select options.
+TYPE_COST = {
+    "automation": 1,
+    "research": 3,
+    "report": 5,
+    "content": 7,
+}
+DEFAULT_COST = 10
+
 
 class NotionClient:
     def __init__(self, token: str, database_id: str):
@@ -19,10 +30,13 @@ class NotionClient:
         }
 
     def query_tasks(self, status: str, limit: int | None = None) -> list[dict]:
-        """Fetch one page of tasks in the given status, sorted by Cost ascending.
+        """Fetch one page of tasks in the given status, sorted by Created At ascending (FIFO).
 
-        Only returns the first Notion page (at most `MAX_PAGE_SIZE` results) -
-        callers that need an exact count above that should page through
+        The live database has no Cost property to sort by server-side, so
+        callers that need cheapest-first ordering must sort the returned
+        results client-side using `task_cost`/`task_details`. Only returns
+        the first Notion page (at most `MAX_PAGE_SIZE` results) - callers
+        that need an exact count above that should page through
         `next_cursor` themselves. `limit=0` returns an empty list rather than
         an unbounded query.
         """
@@ -32,7 +46,7 @@ class NotionClient:
         url = f"https://api.notion.com/v1/databases/{self.database_id}/query"
         payload = {
             "filter": {"property": "Status", "select": {"equals": status}},
-            "sorts": [{"property": "Cost", "direction": "ascending"}],
+            "sorts": [{"property": "Created At", "direction": "ascending"}],
         }
         if limit is not None:
             payload["page_size"] = min(limit, MAX_PAGE_SIZE)
@@ -48,6 +62,12 @@ class NotionClient:
         response.raise_for_status()
 
 
+def task_cost(task_type: str | None) -> int:
+    if not task_type:
+        return DEFAULT_COST
+    return TYPE_COST.get(task_type.lower(), DEFAULT_COST)
+
+
 def task_details(task: dict) -> dict:
     properties = task.get("properties", {})
 
@@ -56,17 +76,12 @@ def task_details(task: dict) -> dict:
     if title:
         name = title[0].get("plain_text", name)
 
-    cost = None
-    formula = properties.get("Cost", {}).get("formula")
-    if formula:
-        cost = formula.get("number")
-
-    pipeline = None
-    select = properties.get("Pipeline", {}).get("select")
+    task_type = None
+    select = properties.get("Type", {}).get("select")
     if select:
-        pipeline = select.get("name")
+        task_type = select.get("name")
 
-    return {"id": task["id"], "name": name, "cost": cost, "pipeline": pipeline}
+    return {"id": task["id"], "name": name, "type": task_type, "cost": task_cost(task_type)}
 
 
 def log(message: str) -> None:

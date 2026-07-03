@@ -8,25 +8,38 @@ import dispatcher_tier2 as tier2  # noqa: E402
 from dispatcher_tier2 import dispatch_next_task  # noqa: E402
 
 
-def _task(task_id="page1", name="Write blog post", cost=1):
+def _task(task_id="page1", name="Write blog post", task_type="automation"):
     return {
         "id": task_id,
         "properties": {
             "Task Name": {"title": [{"plain_text": name}]},
-            "Cost": {"formula": {"number": cost}},
-            "Pipeline": {"select": {"name": "Automation"}},
+            "Type": {"select": {"name": task_type}},
         },
     }
 
 
-def test_dispatch_next_task_starts_cheapest_pending_task():
+def test_dispatch_next_task_starts_only_pending_task():
     client = MagicMock()
     client.query_tasks.return_value = [_task()]
 
     dispatch_next_task(client)
 
-    client.query_tasks.assert_called_once_with("Pending", limit=1)
-    client.update_status.assert_called_once_with("page1", "Running")
+    client.query_tasks.assert_called_once_with("pending")
+    client.update_status.assert_called_once_with("page1", "running")
+
+
+def test_dispatch_next_task_picks_cheapest_of_several_pending_tasks():
+    client = MagicMock()
+    # content (cost 7) is queried before automation (cost 1); the cheaper one
+    # must still win since there's no server-side Cost sort to rely on.
+    client.query_tasks.return_value = [
+        _task("expensive", "Write article", task_type="content"),
+        _task("cheap", "Sync data", task_type="automation"),
+    ]
+
+    dispatch_next_task(client)
+
+    client.update_status.assert_called_once_with("cheap", "running")
 
 
 def test_dispatch_next_task_does_nothing_when_queue_is_empty():

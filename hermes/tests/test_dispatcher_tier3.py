@@ -20,20 +20,19 @@ def reset_globals():
     yield
 
 
-def _task(task_id="page1", name="Write blog post", cost=1):
+def _task(task_id="page1", name="Write blog post", task_type="automation"):
     return {
         "id": task_id,
         "properties": {
             "Task Name": {"title": [{"plain_text": name}]},
-            "Cost": {"formula": {"number": cost}},
-            "Pipeline": {"select": {"name": "Automation"}},
+            "Type": {"select": {"name": task_type}},
         },
     }
 
 
 def test_dispatch_tasks_skips_when_at_capacity():
     tier3.client = MagicMock()
-    tier3.client.query_tasks.return_value = [_task(), _task(), _task()]  # 3 Running == cap
+    tier3.client.query_tasks.return_value = [_task(), _task(), _task()]  # 3 running == cap
     tier3.max_parallel_tasks = 3
 
     dispatched = tier3.dispatch_tasks()
@@ -42,18 +41,25 @@ def test_dispatch_tasks_skips_when_at_capacity():
     tier3.client.update_status.assert_not_called()
 
 
-def test_dispatch_tasks_starts_pending_tasks_up_to_available_slots():
+def test_dispatch_tasks_starts_cheapest_pending_tasks_up_to_available_slots():
     tier3.client = MagicMock()
     tier3.max_parallel_tasks = 3
     tier3.client.query_tasks.side_effect = [
-        [_task("running1")],  # running_task_count query
-        [_task("pending1"), _task("pending2")],  # pending query
+        [_task("running1")],  # running_task_count query -> 1 running, 2 slots available
+        [
+            _task("expensive", "Write article", task_type="content"),  # cost 7
+            _task("cheap1", "Sync data", task_type="automation"),  # cost 1
+            _task("cheap2", "Look something up", task_type="research"),  # cost 3
+        ],
     ]
 
     dispatched = tier3.dispatch_tasks()
 
     assert dispatched == 2
-    assert tier3.client.update_status.call_count == 2
+    started_ids = {call.args[0] for call in tier3.client.update_status.call_args_list}
+    assert started_ids == {"cheap1", "cheap2"}
+    for call in tier3.client.update_status.call_args_list:
+        assert call.args[1] == "running"
 
 
 def test_verify_notion_signature_accepts_matching_hmac():

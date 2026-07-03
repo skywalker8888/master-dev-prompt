@@ -2,7 +2,7 @@
 Hermes Tier 2 - Scheduled Dispatcher
 
 Polls the Hermes Notion database every 5 minutes and moves the cheapest
-pending task to "Running".
+pending task to "running".
 
 Setup:
     pip install -r requirements.txt
@@ -23,17 +23,19 @@ POLL_INTERVAL_SECONDS = 300
 
 def dispatch_next_task(client: NotionClient) -> None:
     log("Checking for pending tasks...")
-    pending = client.query_tasks("Pending", limit=1)
+    # The live database has no Cost property to sort by server-side, so fetch
+    # a page of pending tasks and pick the cheapest one client-side.
+    pending = [task_details(raw) for raw in client.query_tasks("pending")]
 
     if not pending:
         log("No pending tasks found")
         return
 
-    task = task_details(pending[0])
-    log(f"Found task: '{task['name']}' (Cost: {task['cost']})")
+    task = min(pending, key=lambda t: t["cost"])
+    log(f"Found task: '{task['name']}' (Type: {task['type']}, Cost: {task['cost']})")
 
-    client.update_status(task["id"], "Running")
-    log(f"Task '{task['name']}' moved to Running")
+    client.update_status(task["id"], "running")
+    log(f"Task '{task['name']}' moved to running")
 
 
 def main() -> None:

@@ -3,31 +3,45 @@
 Hermes prioritizes and routes tasks stored in a Notion database using a
 cheapest-first strategy, at three tiers of automation.
 
+## Schema
+
+Hermes runs against a Notion database with these properties (this matches
+the live **🧠 Hermes Tasks** database — Tier 2/3 code assumes exactly this
+schema, not the capitalized `Pending`/`Pipeline`/`Cost` names from an earlier
+draft of this doc):
+
+- `Task Name` — Title
+- `Status` — Select: `pending`, `running`, `completed`, `failed`
+- `Type` — Select: `automation`, `research`, `report`, `content`
+- `Input Data` — Text
+- `Output` — Text
+- `Created At` — Date
+
+There is **no `Cost` property in Notion.** The live database has no formula
+to sort by cost, so cheapest-first priority (`automation`=1, `research`=3,
+`report`=5, `content`=7, anything else=10) is computed in Python — see
+`TYPE_COST` in `notion_client.py` — and applied client-side after fetching
+pending tasks. Tier 2 and Tier 3 both do this. Keep that mapping in sync
+with the `Type` options if they ever change.
+
 ## Tier 1 — Manual (Notion only, no code)
 
-1. Create a Notion database named **Hermes Task Manager** with these properties:
-   - `Task Name` — Title (rename the default Name column)
-   - `Status` — Select: `Pending`, `Running`, `Completed`
-   - `Pipeline` — Select: `Automation`, `Research`, `Report`, `Content`
-   - `Cost` — Formula:
-     ```
-     if(prop("Pipeline") == "Automation", 1,
-     if(prop("Pipeline") == "Research", 3,
-     if(prop("Pipeline") == "Report", 5,
-     if(prop("Pipeline") == "Content", 7, 10))))
-     ```
-   - `Notes` — Text
-   - `Created Time` — Created time
-   - `Created By` — Created by
-2. Add a **Button** property named `▶️ Start Next Task`:
-   - Find pages: `Status is Pending`, sorted by `Cost` ascending, limit 1
-   - Edit pages: set `Status` to `Running`
-3. Add an automation **Auto-Complete Automation Tasks**:
-   - Trigger: `Status is set to Running` and `Pipeline is Automation`
-   - Action: set `Status` to `Completed`
-4. Add views: `📋 Pending Queue` (filter Pending, sort Cost asc), `⚡ Running
-   Tasks` (filter Running), `✅ Done This Week` (filter Completed + Created
-   Time within this week), `📊 Pipeline Board` (board grouped by Status).
+Because the cost mapping only exists in Python, a pure-Notion button can't
+replicate cheapest-first ordering — it can only sort by a real property. Set
+up Tier 1 as FIFO (oldest pending task first) instead:
+
+1. Add a **Button** property named `▶️ Start Next Task`:
+   - Find pages: `Status is pending`, sorted by `Created At` ascending, limit 1
+   - Edit pages: set `Status` to `running`
+2. Add an automation **Auto-Complete Automation Tasks**:
+   - Trigger: `Status is set to running` and `Type is automation`
+   - Action: set `Status` to `completed`
+3. Add views: `📋 Pending Queue` (filter `pending`, sort `Created At` asc),
+   `⚡ Running Tasks` (filter `running`), `✅ Done This Week` (filter
+   `completed` + `Created At` within this week), `📊 Pipeline Board` (board
+   grouped by `Status`).
+
+Tier 1 is FIFO-only; only Tier 2/3 apply cheapest-first priority.
 
 See `docs/index.html` for the fully illustrated setup guide and
 `ONBOARDING.md` for the team-facing one-pager.
