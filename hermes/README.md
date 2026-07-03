@@ -40,7 +40,7 @@ Automates the Tier 1 button click on a 5-minute interval.
 cd hermes
 pip install -r requirements.txt
 cp .env.example .env   # fill in NOTION_TOKEN and DATABASE_ID
-python dispatcher_tier2.py
+python3 dispatcher_tier2.py
 ```
 
 Getting `NOTION_TOKEN` and `DATABASE_ID`:
@@ -58,12 +58,25 @@ of a 30-second background poll as a fallback.
 cd hermes
 pip install -r requirements.txt
 cp .env.example .env   # also set WEBHOOK_PORT and MAX_PARALLEL_TASKS
-python dispatcher_tier3.py
+python3 dispatcher_tier3.py
 ```
 
 Endpoints:
-- `POST /webhook` — trigger an immediate dispatch pass
+- `POST /webhook` — trigger an immediate dispatch pass. Accepts either:
+  - a generic caller sending the `X-Webhook-Secret` header (set `WEBHOOK_SECRET`), or
+  - a real Notion webhook subscription: Notion's one-time `verification_token`
+    handshake is accepted automatically, and subsequent events are verified
+    via the `X-Notion-Signature` HMAC header against `NOTION_WEBHOOK_SECRET`
+    (see [Notion's webhook docs](https://developers.notion.com/reference/webhooks))
 - `GET /status` — health check (running task count, max parallel, timestamp)
+
+## Running tests
+
+```bash
+cd hermes
+pip install -r requirements-dev.txt
+python3 -m pytest tests/
+```
 
 ## Files
 
@@ -75,3 +88,5 @@ Endpoints:
 | `docs/index.html` | Illustrated documentation site (overview, setup, API reference, troubleshooting) |
 | `docs/dashboard.html` | Sample metrics dashboard template |
 | `ONBOARDING.md` | Team-facing one-pager for creating and tracking tasks |
+| `requirements.txt` / `requirements-dev.txt` | Runtime deps / adds pytest for `tests/` |
+| `tests/` | Unit tests (mocked Notion API, no live database needed) |

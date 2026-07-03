@@ -9,9 +9,19 @@ Setup:
     cp .env.example .env   # fill in NOTION_TOKEN, DATABASE_ID, WEBHOOK_PORT, MAX_PARALLEL_TASKS
 
 Run:
-    python dispatcher_tier3.py
+    python3 dispatcher_tier3.py
+
+/webhook accepts two kinds of callers:
+  - A generic trigger (curl, an internal script, Zapier, ...) authenticated
+    with a shared secret in the X-Webhook-Secret header (WEBHOOK_SECRET).
+  - A real Notion webhook subscription: Notion first POSTs a one-time
+    {"verification_token": ...} handshake, then signs every subsequent event
+    body with an X-Notion-Signature header, verified here using
+    NOTION_WEBHOOK_SECRET as the HMAC key (see
+    https://developers.notion.com/reference/webhooks).
 """
 
+import hashlib
 import hmac
 import os
 import threading
@@ -29,6 +39,7 @@ app = Flask(__name__)
 client: NotionClient | None = None
 max_parallel_tasks = 3
 webhook_secret: str | None = None
+notion_webhook_secret: str | None = None
 
 # Serializes dispatch_tasks so the webhook thread and the background poll
 # loop can't both read a stale running-task count and jointly exceed
@@ -36,13 +47,23 @@ webhook_secret: str | None = None
 dispatch_lock = threading.Lock()
 
 
-def running_task_count() -> int:
-    return len(client.query_tasks("Running"))
+def running_task_count(limit: int | None = None) -> int:
+    return len(client.query_tasks("Running", limit=limit))
+
+
+def verify_notion_signature(raw_body: bytes, signature_header: str | None, secret: str) -> bool:
+    if not signature_header:
+        return False
+    expected = "sha256=" + hmac.new(secret.encode(), raw_body, hashlib.sha256).hexdigest()
+    return hmac.compare_digest(expected, signature_header)
 
 
 def dispatch_tasks() -> int:
     with dispatch_lock:
-        available_slots = max_parallel_tasks - running_task_count()
+        # Bounding the query at max_parallel_tasks is enough to decide
+        # whether the cap is reached, without needing to page through every
+        # Running task (query_tasks only returns one Notion page).
+        available_slots = max_parallel_tasks - running_task_count(limit=max_parallel_tasks)
         if available_slots <= 0:
             log(f"Max parallel tasks reached ({max_parallel_tasks})")
             return 0
@@ -64,13 +85,27 @@ def dispatch_tasks() -> int:
 
 @app.route("/webhook", methods=["POST"])
 def webhook_handler():
-    if webhook_secret:
+    payload = request.get_json(silent=True) or {}
+
+    # Notion's one-time subscription verification handshake: no signature is
+    # sent with this request, just log the token so it can be pasted into
+    # the integration dashboard, then accept.
+    if "verification_token" in payload:
+        log(f"Notion webhook verification token received: {payload['verification_token']}")
+        return jsonify({"status": "verified"}), 200
+
+    if notion_webhook_secret:
+        signature = request.headers.get("X-Notion-Signature")
+        if not verify_notion_signature(request.get_data(), signature, notion_webhook_secret):
+            log("Webhook rejected: invalid or missing X-Notion-Signature")
+            return jsonify({"status": "unauthorized"}), 401
+    elif webhook_secret:
         provided = request.headers.get("X-Webhook-Secret", "")
         if not hmac.compare_digest(provided, webhook_secret):
             log("Webhook rejected: invalid or missing X-Webhook-Secret")
             return jsonify({"status": "unauthorized"}), 401
 
-    log(f"Webhook received: {request.json}")
+    log(f"Webhook received: {payload}")
     threading.Thread(target=dispatch_tasks, daemon=True).start()
     return jsonify({"status": "accepted"}), 202
 
@@ -101,7 +136,7 @@ def continuous_dispatcher() -> None:
 
 
 def main() -> None:
-    global client, max_parallel_tasks, webhook_secret
+    global client, max_parallel_tasks, webhook_secret, notion_webhook_secret
 
     load_dotenv()
     env = require_env("NOTION_TOKEN", "DATABASE_ID")
@@ -109,9 +144,10 @@ def main() -> None:
     max_parallel_tasks = int(os.getenv("MAX_PARALLEL_TASKS", "3"))
     webhook_port = int(os.getenv("WEBHOOK_PORT", "5000"))
     webhook_secret = os.getenv("WEBHOOK_SECRET")
+    notion_webhook_secret = os.getenv("NOTION_WEBHOOK_SECRET")
 
-    if not webhook_secret:
-        log("WARNING: WEBHOOK_SECRET is not set - /webhook is unauthenticated")
+    if not webhook_secret and not notion_webhook_secret:
+        log("WARNING: neither WEBHOOK_SECRET nor NOTION_WEBHOOK_SECRET is set - /webhook is unauthenticated")
 
     log("Hermes Tier 3 dispatcher started")
     log(f"Database: {env['DATABASE_ID']}, max parallel tasks: {max_parallel_tasks}")

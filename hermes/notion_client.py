@@ -6,6 +6,7 @@ from datetime import datetime
 import requests
 
 NOTION_VERSION = "2022-06-28"
+MAX_PAGE_SIZE = 100
 
 
 class NotionClient:
@@ -18,13 +19,23 @@ class NotionClient:
         }
 
     def query_tasks(self, status: str, limit: int | None = None) -> list[dict]:
+        """Fetch one page of tasks in the given status, sorted by Cost ascending.
+
+        Only returns the first Notion page (at most `MAX_PAGE_SIZE` results) -
+        callers that need an exact count above that should page through
+        `next_cursor` themselves. `limit=0` returns an empty list rather than
+        an unbounded query.
+        """
+        if limit is not None and limit <= 0:
+            return []
+
         url = f"https://api.notion.com/v1/databases/{self.database_id}/query"
         payload = {
             "filter": {"property": "Status", "select": {"equals": status}},
             "sorts": [{"property": "Cost", "direction": "ascending"}],
         }
-        if limit:
-            payload["page_size"] = limit
+        if limit is not None:
+            payload["page_size"] = min(limit, MAX_PAGE_SIZE)
 
         response = requests.post(url, headers=self.headers, json=payload, timeout=30)
         response.raise_for_status()

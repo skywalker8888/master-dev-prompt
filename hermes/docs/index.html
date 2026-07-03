@@ -150,19 +150,24 @@ Action:
     <div class="code-block">pip install -r requirements.txt
 cp .env.example .env   # fill in NOTION_TOKEN and DATABASE_ID
 
-python dispatcher_tier2.py   # Tier 2, polling every 5 min
-python dispatcher_tier3.py   # Tier 3, webhook + 30s polling fallback</div>
+python3 dispatcher_tier2.py   # Tier 2, polling every 5 min
+python3 dispatcher_tier3.py   # Tier 3, webhook + 30s polling fallback</div>
 
     <h3>Environment Variables</h3>
-    <div class="code-block">NOTION_TOKEN         Notion integration token
-DATABASE_ID          Hermes database ID
-WEBHOOK_PORT         Port for the Tier 3 webhook server (default 5000)
-MAX_PARALLEL_TASKS   Max concurrent Running tasks for Tier 3 (default 3)
-WEBHOOK_SECRET       Shared secret required on POST /webhook (Tier 3)</div>
+    <div class="code-block">NOTION_TOKEN          Notion integration token
+DATABASE_ID           Hermes database ID
+WEBHOOK_PORT          Port for the Tier 3 webhook server (default 5000)
+MAX_PARALLEL_TASKS    Max concurrent Running tasks for Tier 3 (default 3)
+WEBHOOK_SECRET        Shared secret for a generic caller on POST /webhook
+NOTION_WEBHOOK_SECRET Notion's verification_token, used to check the
+                      X-Notion-Signature HMAC on real Notion webhook events
+                      (takes precedence over WEBHOOK_SECRET if both are set)</div>
 
     <h3>Tier 3 Endpoints</h3>
-    <div class="code-block">POST /webhook   Trigger an immediate dispatch pass
-                Requires header: X-Webhook-Secret: &lt;WEBHOOK_SECRET&gt;
+    <div class="code-block">POST /webhook   Trigger an immediate dispatch pass. Either:
+                  - generic caller: header X-Webhook-Secret: &lt;WEBHOOK_SECRET&gt;
+                  - Notion webhook: accepts the one-time verification_token
+                    handshake, then verifies X-Notion-Signature on events
 GET  /status    Health check: running task count, max parallel, timestamp</div>
   </section>
 

@@ -9,7 +9,7 @@ Setup:
     cp .env.example .env   # fill in NOTION_TOKEN and DATABASE_ID
 
 Run:
-    python dispatcher_tier2.py
+    python3 dispatcher_tier2.py
 """
 
 import time
