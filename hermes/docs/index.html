@@ -1,0 +1,194 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Hermes Documentation</title>
+<style>
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+  body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif; line-height: 1.6; color: #333; }
+  .header { background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); color: white; padding: 60px 20px; text-align: center; }
+  .header h1 { font-size: 48px; margin-bottom: 10px; }
+  .header p { font-size: 20px; opacity: 0.9; }
+  .nav { background: #2d3748; padding: 20px; position: sticky; top: 0; z-index: 100; }
+  .nav-links { display: flex; justify-content: center; gap: 30px; flex-wrap: wrap; list-style: none; }
+  .nav-links a { color: white; text-decoration: none; font-weight: 600; }
+  .nav-links a:hover { color: #a3b1ff; }
+  .container { max-width: 1200px; margin: 0 auto; padding: 40px 20px; }
+  .section { margin-bottom: 60px; }
+  .section h2 { font-size: 36px; color: #1a202c; margin-bottom: 20px; padding-bottom: 10px; border-bottom: 3px solid #667eea; }
+  .section h3 { font-size: 24px; color: #2d3748; margin-top: 30px; margin-bottom: 15px; }
+  .section p { margin-bottom: 15px; color: #4a5568; }
+  .card-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(280px, 1fr)); gap: 25px; margin: 30px 0; }
+  .card { background: white; border: 2px solid #e2e8f0; border-radius: 12px; padding: 25px; }
+  .card h4 { font-size: 20px; color: #667eea; margin-bottom: 10px; }
+  .code-block { background: #2d3748; color: #e2e8f0; padding: 20px; border-radius: 8px; overflow-x: auto; margin: 20px 0; font-family: 'Courier New', monospace; font-size: 14px; white-space: pre; }
+  .highlight { background: #ffd93d; padding: 2px 6px; border-radius: 3px; font-weight: 600; }
+  .tier-comparison { display: grid; grid-template-columns: repeat(3, 1fr); gap: 20px; margin: 30px 0; }
+  .tier-card { border-radius: 12px; padding: 25px; }
+  .tier-1-card { background: linear-gradient(135deg, #e0f7fa 0%, #b2ebf2 100%); border: 3px solid #00bcd4; }
+  .tier-2-card { background: linear-gradient(135deg, #fffde7 0%, #fff9c4 100%); border: 3px solid #ffc107; }
+  .tier-3-card { background: linear-gradient(135deg, #f3e5f5 0%, #e1bee7 100%); border: 3px solid #9c27b0; }
+  .tier-card ul { text-align: left; margin: 15px 0; padding-left: 20px; }
+  .tier-card li { margin: 8px 0; }
+  @media (max-width: 768px) { .tier-comparison { grid-template-columns: 1fr; } }
+</style>
+</head>
+<body>
+<div class="header">
+  <h1>Hermes</h1>
+  <p>Smart Task Orchestration System</p>
+</div>
+
+<nav class="nav">
+  <ul class="nav-links">
+    <li><a href="#overview">Overview</a></li>
+    <li><a href="#tiers">Tiers</a></li>
+    <li><a href="#setup">Setup Guide</a></li>
+    <li><a href="#api">API Reference</a></li>
+    <li><a href="#troubleshooting">Troubleshooting</a></li>
+  </ul>
+</nav>
+
+<div class="container">
+  <section id="overview" class="section">
+    <h2>Overview</h2>
+    <p>Hermes is a task management system built on Notion that automatically prioritizes and routes work using a <span class="highlight">cheapest-first</span> strategy.</p>
+    <div class="card-grid">
+      <div class="card">
+        <h4>Smart Prioritization</h4>
+        <p>Automatically processes the lowest-effort tasks first, ensuring quick wins and maintaining momentum.</p>
+      </div>
+      <div class="card">
+        <h4>Automated Routing</h4>
+        <p>Tasks flow through specialized pipelines (Automation, Research, Report, Content) without manual intervention.</p>
+      </div>
+      <div class="card">
+        <h4>Centralized Tracking</h4>
+        <p>Everything lives in Notion — no new tools, no context switching, no data silos.</p>
+      </div>
+    </div>
+  </section>
+
+  <section id="tiers" class="section">
+    <h2>Three Tiers of Operation</h2>
+    <p>Hermes grows with your needs through three operational tiers:</p>
+    <div class="tier-comparison">
+      <div class="tier-card tier-1-card">
+        <h3>Tier 1: Manual</h3>
+        <p><strong>Best for:</strong> Pilots &amp; testing</p>
+        <ul>
+          <li>1-hour setup</li>
+          <li>Button-click dispatch</li>
+          <li>Zero code</li>
+          <li>Requires a human to click</li>
+        </ul>
+      </div>
+      <div class="tier-card tier-2-card">
+        <h3>Tier 2: Scheduled</h3>
+        <p><strong>Best for:</strong> Production use</p>
+        <ul>
+          <li>Polls every 5 minutes</li>
+          <li>Fully automated</li>
+          <li><code>dispatcher_tier2.py</code></li>
+          <li>Slight dispatch delay</li>
+        </ul>
+      </div>
+      <div class="tier-card tier-3-card">
+        <h3>Tier 3: Real-time</h3>
+        <p><strong>Best for:</strong> Larger scale</p>
+        <ul>
+          <li>Webhook + polling fallback</li>
+          <li>Parallel task cap</li>
+          <li><code>dispatcher_tier3.py</code></li>
+          <li>Needs hosting</li>
+        </ul>
+      </div>
+    </div>
+  </section>
+
+  <section id="setup" class="section">
+    <h2>Detailed Setup Guide</h2>
+    <h3>Notion Database Properties</h3>
+    <div class="code-block">Task Name    Title
+Status       Select: Pending, Running, Completed
+Pipeline     Select: Automation, Research, Report, Content
+Cost         Formula (see README.md for the exact expression)
+Notes        Text
+Created Time Created time
+Created By   Created by</div>
+
+    <h3>Dispatcher Button</h3>
+    <div class="code-block">Button Name: "Start Next Task"
+
+Step 1: Find pages
+  Database: Hermes Task Manager
+  Filter: Status is Pending
+  Sort: Cost ascending
+  Limit: 1 page
+
+Step 2: Edit pages
+  Property: Status
+  Set to: Running</div>
+
+    <h3>Automation</h3>
+    <div class="code-block">Automation Name: "Auto-Complete Automation Tasks"
+
+Trigger:
+  Status is set to Running
+  Pipeline is Automation
+
+Action:
+  Set Status to Completed</div>
+
+    <p>Full step-by-step instructions live in <code>README.md</code> in this directory.</p>
+  </section>
+
+  <section id="api" class="section">
+    <h2>API Reference</h2>
+    <h3>Running the dispatchers</h3>
+    <div class="code-block">pip install -r requirements.txt
+cp .env.example .env   # fill in NOTION_TOKEN and DATABASE_ID
+
+python dispatcher_tier2.py   # Tier 2, polling every 5 min
+python dispatcher_tier3.py   # Tier 3, webhook + 30s polling fallback</div>
+
+    <h3>Environment Variables</h3>
+    <div class="code-block">NOTION_TOKEN         Notion integration token
+DATABASE_ID          Hermes database ID
+WEBHOOK_PORT         Port for the Tier 3 webhook server (default 5000)
+MAX_PARALLEL_TASKS   Max concurrent Running tasks for Tier 3 (default 3)</div>
+
+    <h3>Tier 3 Endpoints</h3>
+    <div class="code-block">POST /webhook   Trigger an immediate dispatch pass
+GET  /status    Health check: running task count, max parallel, timestamp</div>
+  </section>
+
+  <section id="troubleshooting" class="section">
+    <h2>Troubleshooting</h2>
+    <div class="card-grid">
+      <div class="card">
+        <h4>Button doesn't work</h4>
+        <p>Check that the filter is Status = Pending and the sort is Cost ascending.</p>
+      </div>
+      <div class="card">
+        <h4>Automation not triggering</h4>
+        <p>Verify both conditions: Status = Running AND Pipeline = Automation.</p>
+      </div>
+      <div class="card">
+        <h4>Cost formula shows an error</h4>
+        <p>Make sure Pipeline is a Select property with the exact option names used in the formula.</p>
+      </div>
+      <div class="card">
+        <h4>Script can't connect</h4>
+        <p>Check NOTION_TOKEN and DATABASE_ID in .env, and confirm the database is shared with the integration.</p>
+      </div>
+      <div class="card">
+        <h4>Tasks stuck in Running</h4>
+        <p>Non-Automation pipelines need to be completed manually or via an additional automation.</p>
+      </div>
+    </div>
+  </section>
+</div>
+</body>
+</html>
