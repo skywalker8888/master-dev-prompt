@@ -58,6 +58,37 @@ def test_query_tasks_returns_results():
         assert client.query_tasks("pending", limit=1) == tasks
 
 
+def test_query_all_tasks_pages_through_next_cursor():
+    client = _client()
+    page1 = MagicMock()
+    page1.raise_for_status.return_value = None
+    page1.json.return_value = {"results": [{"id": "a"}], "has_more": True, "next_cursor": "cursor-1"}
+    page2 = MagicMock()
+    page2.raise_for_status.return_value = None
+    page2.json.return_value = {"results": [{"id": "b"}], "has_more": False, "next_cursor": None}
+
+    with patch("notion_client.requests.post", side_effect=[page1, page2]) as mock_post:
+        results = client.query_all_tasks("pending")
+
+        assert results == [{"id": "a"}, {"id": "b"}]
+        assert mock_post.call_count == 2
+        first_payload = mock_post.call_args_list[0].kwargs["json"]
+        second_payload = mock_post.call_args_list[1].kwargs["json"]
+        assert "start_cursor" not in first_payload
+        assert second_payload["start_cursor"] == "cursor-1"
+
+
+def test_query_all_tasks_stops_after_single_page():
+    client = _client()
+    with patch("notion_client.requests.post", return_value=_mock_response([{"id": "only"}])) as mock_post:
+        # has_more defaults to falsy via .get(), so a plain results dict works
+        mock_post.return_value.json.return_value = {"results": [{"id": "only"}]}
+        results = client.query_all_tasks("pending")
+
+        assert results == [{"id": "only"}]
+        assert mock_post.call_count == 1
+
+
 def test_update_status_patches_correct_page():
     client = _client()
     response = MagicMock()

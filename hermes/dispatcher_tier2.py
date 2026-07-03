@@ -24,8 +24,8 @@ POLL_INTERVAL_SECONDS = 300
 def dispatch_next_task(client: NotionClient) -> None:
     log("Checking for pending tasks...")
     # The live database has no Cost property to sort by server-side, so fetch
-    # a page of pending tasks and pick the cheapest one client-side.
-    pending = [task_details(raw) for raw in client.query_tasks("pending")]
+    # every pending task and pick the cheapest one client-side.
+    pending = [task_details(raw) for raw in client.query_all_tasks("pending")]
 
     if not pending:
         log("No pending tasks found")

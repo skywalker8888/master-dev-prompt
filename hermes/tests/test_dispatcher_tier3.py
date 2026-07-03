@@ -44,22 +44,36 @@ def test_dispatch_tasks_skips_when_at_capacity():
 def test_dispatch_tasks_starts_cheapest_pending_tasks_up_to_available_slots():
     tier3.client = MagicMock()
     tier3.max_parallel_tasks = 3
-    tier3.client.query_tasks.side_effect = [
-        [_task("running1")],  # running_task_count query -> 1 running, 2 slots available
-        [
-            _task("expensive", "Write article", task_type="content"),  # cost 7
-            _task("cheap1", "Sync data", task_type="automation"),  # cost 1
-            _task("cheap2", "Look something up", task_type="research"),  # cost 3
-        ],
+    tier3.client.query_tasks.return_value = [_task("running1")]  # 1 running, 2 slots available
+    tier3.client.query_all_tasks.return_value = [
+        _task("expensive", "Write article", task_type="content"),  # cost 7
+        _task("cheap1", "Sync data", task_type="automation"),  # cost 1
+        _task("cheap2", "Look something up", task_type="research"),  # cost 3
     ]
 
     dispatched = tier3.dispatch_tasks()
 
     assert dispatched == 2
+    tier3.client.query_all_tasks.assert_called_once_with("pending")
     started_ids = {call.args[0] for call in tier3.client.update_status.call_args_list}
     assert started_ids == {"cheap1", "cheap2"}
-    for call in tier3.client.update_status.call_args_list:
-        assert call.args[1] == "running"
+
+
+def test_dispatch_tasks_picks_cheapest_pending_task_beyond_first_page():
+    """query_all_tasks must be used (not query_tasks) so a cheaper task
+    beyond the first 100-row Notion page still wins."""
+    tier3.client = MagicMock()
+    tier3.max_parallel_tasks = 1
+    tier3.client.query_tasks.return_value = []  # 0 running, 1 slot available
+    tier3.client.query_all_tasks.return_value = [
+        _task("page-1-task", "Older, pricier task", task_type="content"),  # cost 7
+        _task("page-2-task", "Newer, cheaper task", task_type="automation"),  # cost 1
+    ]
+
+    dispatched = tier3.dispatch_tasks()
+
+    assert dispatched == 1
+    tier3.client.update_status.assert_called_once_with("page-2-task", "running")
 
 
 def test_verify_notion_signature_accepts_matching_hmac():
@@ -77,6 +91,24 @@ def test_verify_notion_signature_rejects_wrong_signature():
 
 def test_verify_notion_signature_rejects_missing_header():
     assert tier3.verify_notion_signature(b"{}", None, "shhh") is False
+
+
+def test_verify_notion_signature_rejects_non_ascii_header_without_crashing():
+    # hmac.compare_digest() raises TypeError on non-ASCII str input; an
+    # attacker-controlled header must be rejected, not crash the process.
+    assert tier3.verify_notion_signature(b"{}", "sha256=ééé", "shhh") is False
+
+
+def test_webhook_rejects_non_ascii_shared_secret_header_without_crashing():
+    tier3.webhook_secret = "expected-secret"
+    with tier3.app.test_client() as test_client:
+        response = test_client.post(
+            "/webhook",
+            json={"event": "x"},
+            headers={"X-Webhook-Secret": "ééé"},
+        )
+
+    assert response.status_code == 401
 
 
 def test_webhook_accepts_notion_verification_handshake():

@@ -55,6 +55,36 @@ class NotionClient:
         response.raise_for_status()
         return response.json().get("results", [])
 
+    def query_all_tasks(self, status: str) -> list[dict]:
+        """Fetch every task in the given status, paging through `next_cursor`.
+
+        Use this (not `query_tasks`) when the caller needs a globally correct
+        answer over the whole status - e.g. picking the cheapest pending task
+        - since `query_tasks` only returns a single Notion page.
+        """
+        url = f"https://api.notion.com/v1/databases/{self.database_id}/query"
+        base_payload = {
+            "filter": {"property": "Status", "select": {"equals": status}},
+            "sorts": [{"property": "Created At", "direction": "ascending"}],
+            "page_size": MAX_PAGE_SIZE,
+        }
+
+        results: list[dict] = []
+        cursor: str | None = None
+        while True:
+            payload = dict(base_payload)
+            if cursor:
+                payload["start_cursor"] = cursor
+
+            response = requests.post(url, headers=self.headers, json=payload, timeout=30)
+            response.raise_for_status()
+            data = response.json()
+
+            results.extend(data.get("results", []))
+            if not data.get("has_more"):
+                return results
+            cursor = data.get("next_cursor")
+
     def update_status(self, page_id: str, new_status: str) -> None:
         url = f"https://api.notion.com/v1/pages/{page_id}"
         payload = {"properties": {"Status": {"select": {"name": new_status}}}}

@@ -55,7 +55,10 @@ def verify_notion_signature(raw_body: bytes, signature_header: str | None, secre
     if not signature_header:
         return False
     expected = "sha256=" + hmac.new(secret.encode(), raw_body, hashlib.sha256).hexdigest()
-    return hmac.compare_digest(expected, signature_header)
+    # Compare as bytes, not str: hmac.compare_digest() raises TypeError on
+    # non-ASCII str input, and an attacker-controlled header could contain
+    # arbitrary bytes - that would 500 instead of cleanly rejecting with 401.
+    return hmac.compare_digest(expected.encode(), signature_header.encode())
 
 
 def dispatch_tasks() -> int:
@@ -69,8 +72,8 @@ def dispatch_tasks() -> int:
             return 0
 
         # The live database has no Cost property to sort by server-side, so
-        # fetch a page of pending tasks and pick the cheapest ones client-side.
-        pending = [task_details(raw) for raw in client.query_tasks("pending")]
+        # fetch every pending task and pick the cheapest ones client-side.
+        pending = [task_details(raw) for raw in client.query_all_tasks("pending")]
         if not pending:
             return 0
 
@@ -104,7 +107,8 @@ def webhook_handler():
             return jsonify({"status": "unauthorized"}), 401
     elif webhook_secret:
         provided = request.headers.get("X-Webhook-Secret", "")
-        if not hmac.compare_digest(provided, webhook_secret):
+        # Compare as bytes - see verify_notion_signature for why.
+        if not hmac.compare_digest(provided.encode(), webhook_secret.encode()):
             log("Webhook rejected: invalid or missing X-Webhook-Secret")
             return jsonify({"status": "unauthorized"}), 401
 

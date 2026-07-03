@@ -20,11 +20,11 @@ def _task(task_id="page1", name="Write blog post", task_type="automation"):
 
 def test_dispatch_next_task_starts_only_pending_task():
     client = MagicMock()
-    client.query_tasks.return_value = [_task()]
+    client.query_all_tasks.return_value = [_task()]
 
     dispatch_next_task(client)
 
-    client.query_tasks.assert_called_once_with("pending")
+    client.query_all_tasks.assert_called_once_with("pending")
     client.update_status.assert_called_once_with("page1", "running")
 
 
@@ -32,7 +32,7 @@ def test_dispatch_next_task_picks_cheapest_of_several_pending_tasks():
     client = MagicMock()
     # content (cost 7) is queried before automation (cost 1); the cheaper one
     # must still win since there's no server-side Cost sort to rely on.
-    client.query_tasks.return_value = [
+    client.query_all_tasks.return_value = [
         _task("expensive", "Write article", task_type="content"),
         _task("cheap", "Sync data", task_type="automation"),
     ]
@@ -44,7 +44,7 @@ def test_dispatch_next_task_picks_cheapest_of_several_pending_tasks():
 
 def test_dispatch_next_task_does_nothing_when_queue_is_empty():
     client = MagicMock()
-    client.query_tasks.return_value = []
+    client.query_all_tasks.return_value = []
 
     dispatch_next_task(client)
 
