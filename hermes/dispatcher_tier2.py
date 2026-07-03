@@ -47,7 +47,10 @@ def main() -> None:
 
     try:
         while True:
-            dispatch_next_task(client)
+            try:
+                dispatch_next_task(client)
+            except Exception as exc:
+                log(f"Dispatcher error: {exc}")
             log(f"Sleeping for {POLL_INTERVAL_SECONDS // 60} minutes...")
             time.sleep(POLL_INTERVAL_SECONDS)
     except KeyboardInterrupt:
