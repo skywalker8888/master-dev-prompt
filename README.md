@@ -18,6 +18,7 @@ One prompt. One Claude call. Full engineering package from any transcript.
 | `sample_transcript.txt` | Test transcript (Dear Saigon SMS ordering system) |
 | `app.py` | FastAPI HTTP server — `POST /process` calls Claude directly via SDK, `GET /` serves the web UI |
 | `static/index.html` | Terminal-style web UI — paste a transcript, get rendered artifacts |
+| `dev.sh` | One-command dev launcher — creates a venv, installs deps, and starts the FastAPI server with auto-reload |
 
 ---
 
@@ -151,6 +152,12 @@ Run the included server for HTTP access and a browser UI:
 export ANTHROPIC_API_KEY=sk-...
 pip install fastapi uvicorn anthropic python-dotenv
 uvicorn app:app --reload
+```
+
+Or use the one-command launcher, which sets up a venv and installs deps for you:
+
+```bash
+./dev.sh
 ```
 
 - `GET /` — opens the web UI (paste transcript, get rendered artifacts)
