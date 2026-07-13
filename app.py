@@ -65,15 +65,94 @@ def _split_lines(text: str | None) -> list[str]:
     return [line.strip(" -•\t") for line in text.splitlines() if line.strip()]
 
 
-def _derive_health(result: dict) -> str:
-    actions = result.get("actions", {}).get("items", []) or []
-    high = sum(1 for item in actions if item.get("priority") == "high")
-    medium = sum(1 for item in actions if item.get("priority") == "medium")
-    if high > 0:
-        return "🔴"
-    if medium > MEDIUM_PRIORITY_YELLOW_THRESHOLD:
-        return "🟡"
-    return "🟢"
+def _clean_project_name(value: object) -> str:
+    if not isinstance(value, str):
+        return ""
+    return value.strip()
+
+
+def _get_project_stats(project_stats: dict[str, dict[str, int]], project_name: str) -> dict[str, int]:
+    if project_name not in project_stats:
+        project_stats[project_name] = {
+            "high": 0,
+            "medium": 0,
+            "risks": 0,
+            "blocked": 0,
+            "waiting": 0,
+            "paused": 0,
+            "needs_review": 0,
+        }
+    return project_stats[project_name]
+
+
+def _derive_project_health(result: dict, actions: list[dict], impl: dict, report: dict) -> list[dict]:
+    project_stats: dict[str, dict[str, int]] = {}
+
+    metadata = result.get("project_metadata", {}) or {}
+    metadata_name = _clean_project_name(result.get("project") or result.get("project_name") or metadata.get("name"))
+    if metadata_name:
+        _get_project_stats(project_stats, metadata_name)
+
+    for item in metadata.get("projects", []) or []:
+        if isinstance(item, str):
+            project_name = _clean_project_name(item)
+        elif isinstance(item, dict):
+            project_name = _clean_project_name(item.get("name") or item.get("project") or item.get("title"))
+        else:
+            project_name = ""
+        if project_name:
+            _get_project_stats(project_stats, project_name)
+
+    for milestone in impl.get("milestones", []) or []:
+        project_name = _clean_project_name(milestone.get("project") or milestone.get("project_name") or milestone.get("name"))
+        if not project_name:
+            continue
+        stats = _get_project_stats(project_stats, project_name)
+        if (milestone.get("risks") or "").strip():
+            stats["risks"] += 1
+
+    for item in actions:
+        project_name = _clean_project_name(item.get("project") or item.get("project_name"))
+        if not project_name:
+            continue
+        stats = _get_project_stats(project_stats, project_name)
+        priority = (item.get("priority") or "").strip().lower()
+        if priority == "high":
+            stats["high"] += 1
+        elif priority == "medium":
+            stats["medium"] += 1
+
+    for slide in report.get("task_slides", []) or []:
+        project_name = _clean_project_name(slide.get("project") or slide.get("project_name"))
+        if not project_name:
+            continue
+        stats = _get_project_stats(project_stats, project_name)
+        status = (slide.get("status") or "").strip().lower()
+        if status in {"blocked"}:
+            stats["blocked"] += 1
+        elif status in {"waiting", "pending"}:
+            stats["waiting"] += 1
+        elif status in {"paused"}:
+            stats["paused"] += 1
+        elif status in {"review", "needs review"}:
+            stats["needs_review"] += 1
+
+    project_health = []
+    for project_name, stats in project_stats.items():
+        if stats["blocked"] > 0 or stats["risks"] > 0:
+            status = "🔴"
+        elif (
+            stats["waiting"] > 0
+            or stats["paused"] > 0
+            or stats["needs_review"] > 0
+            or stats["high"] > 0
+            or stats["medium"] > MEDIUM_PRIORITY_YELLOW_THRESHOLD
+        ):
+            status = "🟡"
+        else:
+            status = "🟢"
+        project_health.append({"project": project_name, "status": status})
+    return project_health
 
 
 def build_founder_daily_brief(result: dict) -> dict:
@@ -151,6 +230,7 @@ def build_founder_daily_brief(result: dict) -> dict:
     founder_approvals_required = [item for item in decisions if item]
     completed_since_last_brief = [item for item in completed if item]
     today_top_three_priorities = [item for item in top_priorities if item]
+    project_health = _derive_project_health(result, actions, impl, report)
 
     return {
         "date": str(date.today()),
@@ -160,12 +240,7 @@ def build_founder_daily_brief(result: dict) -> dict:
         "current_blockers": blockers,
         "completed_since_last_brief": completed_since_last_brief,
         "work_completed_since_previous_brief": completed_since_last_brief,
-        "project_health": [
-            {"project": "Dear Saigon", "status": _derive_health(result)},
-            {"project": "CoachAI", "status": "🟡"},
-            {"project": "ZOS Command Center", "status": "🟢"},
-            {"project": "Marketing", "status": "🟡"},
-        ],
+        "project_health": project_health,
         "agent_status": status_counts,
         "agent_status_requiring_attention": attention_status[:MAX_ATTENTION_STATUS_ITEMS],
         "alerts": alerts,

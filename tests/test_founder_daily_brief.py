@@ -45,14 +45,61 @@ def test_build_founder_daily_brief_includes_expected_sections() -> None:
     assert brief["agent_status_requiring_attention"] == ["Review copy (Unassigned) needs review"]
     assert len(brief["today_top_3"]) >= 2
     assert brief["today_top_three_priorities"] == brief["today_top_3"]
+    assert brief["project_health"] == [{"project": "Daily Brief UI", "status": "🔴"}]
     assert "next_founder_action" in brief
+
+
+def test_build_founder_daily_brief_does_not_invent_hardcoded_projects() -> None:
+    result = {
+        "implementation_plan": {"milestones": [{"name": "Warehouse Sync", "risks": "Vendor API timeout"}]},
+        "actions": {"items": [{"description": "Fix retries", "priority": "high", "owner": "Agent"}]},
+    }
+
+    brief = build_founder_daily_brief(result)
+    project_names = [item["project"] for item in brief["project_health"]]
+
+    assert project_names == ["Warehouse Sync"]
+    assert "Dear Saigon" not in project_names
+    assert "CoachAI" not in project_names
+    assert "ZOS Command Center" not in project_names
+    assert "Marketing" not in project_names
+
+
+def test_build_founder_daily_brief_represents_multiple_projects() -> None:
+    result = {
+        "project_metadata": {"projects": [{"name": "Atlas"}, {"name": "Beacon"}]},
+        "actions": {
+            "items": [
+                {"description": "Finalize Atlas launch plan", "priority": "high", "project": "Atlas"},
+                {"description": "Refine Beacon docs", "priority": "medium", "project": "Beacon"},
+            ]
+        },
+        "implementation_plan": {
+            "milestones": [
+                {"name": "Atlas milestone", "project": "Atlas", "risks": "Pending security sign-off"},
+                {"name": "Beacon milestone", "project": "Beacon", "risks": ""},
+            ]
+        },
+        "agent_task_report": {
+            "task_slides": [
+                {"task_title": "Beacon QA", "status": "waiting", "project": "Beacon"},
+            ]
+        },
+    }
+
+    brief = build_founder_daily_brief(result)
+    health_by_project = {item["project"]: item["status"] for item in brief["project_health"]}
+
+    assert set(health_by_project) == {"Atlas", "Beacon"}
+    assert health_by_project["Atlas"] == "🔴"
+    assert health_by_project["Beacon"] == "🟡"
 
 
 def test_build_founder_daily_brief_handles_minimal_result() -> None:
     brief = build_founder_daily_brief({})
 
     assert brief["today_focus"] == "Execution priorities and decision velocity."
-    assert isinstance(brief["project_health"], list)
+    assert brief["project_health"] == []
     assert isinstance(brief["alerts"], dict)
     assert "next_founder_action" in brief
     assert brief["founder_approvals_required"] == []
