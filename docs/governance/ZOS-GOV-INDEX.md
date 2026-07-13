@@ -13,6 +13,7 @@ This index is the table of contents for the ZOS governance system and the canoni
 |---|---|---|---|---|---|
 | ZOS-CON-0001 | Constitution | Active | Founder | 1.0.0 | — |
 | ZOS-STD-0001 | Agent Operating Standard | Draft | Founder | 1.0.0 | ZOS-CON-0001 |
+| ZOS-ACCESS-REGISTRY | Access Registry | Active | Founder | 1.0.0 | ZOS-CON-0001 |
 | ZOS-STD-0002 | Evidence Standard | Planned | Founder | — | ZOS-CON-0001 |
 | ZOS-STD-0003 | Decision Standard | Planned | Founder | — | ZOS-CON-0001 |
 | ZOS-STD-0004 | Documentation Standard | Planned | Founder | — | ZOS-CON-0001 |
