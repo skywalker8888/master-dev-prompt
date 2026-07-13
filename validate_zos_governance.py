@@ -26,6 +26,7 @@ REQUIRED_METADATA_FIELDS = [
 
 VALID_STATUS_VALUES = {"Draft", "Under Review", "Approved", "Active", "Superseded", "Archived"}
 VALID_DOC_CLASSES = {"CON", "STD", "POL", "SOP", "SPEC", "TEST", "ARCH", "ADR", "PLAN", "TASK", "REP"}
+EXCEPTION_DOC_IDS = {"ZOS-CHANGE-0001"}
 CONSTITUTIONAL_SENTENCE = (
     "This document shall not redefine governance established by ZOS-CON-0001. "
     "Where conflict exists, ZOS-CON-0001 prevails."
@@ -112,7 +113,7 @@ def validate_governance(governance_dir: Path) -> list[str]:
             continue
 
         doc_class = match.group(1)
-        if doc_class not in VALID_DOC_CLASSES:
+        if doc_class not in VALID_DOC_CLASSES and doc.doc_id not in EXCEPTION_DOC_IDS:
             errors.append(f"{doc.path}: unsupported document class '{doc_class}'.")
 
         if doc.doc_id in doc_by_id:

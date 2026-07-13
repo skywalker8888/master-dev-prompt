@@ -15,6 +15,7 @@ This index is the table of contents for the ZOS governance system and the canoni
 | ZOS-STD-0001 | Agent Operating Standard | Active | Founder | 1.0.0 | ZOS-CON-0001 | ZOS-CON-0001 | ZOS-STD-0009 (planned) |
 | ZOS-SOP-0001 | Fast Correction Protocol | Active | Founder | 1.0.0 | ZOS-CON-0001 | ZOS-CON-0001; ZOS-STD-0001 | — |
 | ZOS-SPEC-0001 | Access Registry Specification | Draft | Founder | 1.0.0 | ZOS-CON-0001 | ZOS-CON-0001 | ZOS-STD-0009 (planned) |
+| ZOS-CHANGE-0001 | Governance Change Log | Active | Founder | 1.0.0 | ZOS-CON-0001 | ZOS-CON-0001; ZOS-STD-0001 | — |
 | ZOS-STD-0002 | Evidence Standard | Planned | Founder | — | ZOS-CON-0001 | — | — |
 | ZOS-STD-0003 | Decision Standard | Planned | Founder | — | ZOS-CON-0001 | — | — |
 | ZOS-STD-0004 | Documentation Standard | Planned | Founder | — | ZOS-CON-0001 | — | — |
@@ -30,6 +31,7 @@ This index is the table of contents for the ZOS governance system and the canoni
 - `docs/governance/ZOS-STD-0001.md`
 - `docs/governance/ZOS-GOV-INDEX.md`
 - `docs/governance/ZOS-SOP-0001.md`
+- `docs/governance/ZOS-CHANGE-0001.md`
 - `docs/governance/templates/ZOS-GOV-DOCUMENT-TEMPLATE.md`
 - `docs/governance/templates/ZOS-GOV-METADATA-TEMPLATE.md`
 - `validate_zos_governance.py`

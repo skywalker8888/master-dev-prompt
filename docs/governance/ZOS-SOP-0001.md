@@ -110,3 +110,27 @@ Do not repeat full project history unless explicitly requested.
 
 ## 12) Merge/Activation Restriction
 Agents must not merge, activate, publish, or deploy governance changes without explicit Founder approval.
+
+## 13) Governance Release Cycle
+Governance revisions must follow this lightweight lifecycle:
+
+Draft
+↓
+Review
+↓
+Ratify
+↓
+Release
+↓
+Frozen
+↓
+Feedback
+↓
+Change Request
+↓
+Next Version
+
+Release-cycle execution rules:
+- Governance v1.0 remains frozen unless a change request is recorded in ZOS-CHANGE-0001.
+- Each approved change request must define affected documents and target effective version before implementation.
+- Feedback from active production projects is the default input source for new change requests.
