@@ -12,7 +12,12 @@ class ProjectMemoryError(Exception):
 def load_project_by_id(
     project_id: str, projects_dir: Path
 ) -> Optional[ProjectMemory]:
-    path = projects_dir / f"{project_id}.json"
+    path = (projects_dir / f"{project_id}.json").resolve()
+    projects_root = projects_dir.resolve()
+    try:
+        path.relative_to(projects_root)
+    except ValueError:
+        return None
     if not path.exists():
         return None
     return _parse(path)
@@ -26,10 +31,8 @@ def load_project_by_name(
     for path in projects_dir.glob("*.json"):
         try:
             raw = json.loads(path.read_text())
-        except json.JSONDecodeError as e:
-            raise ProjectMemoryError(
-                f"Malformed JSON in {path.name}: {e}"
-            ) from e
+        except json.JSONDecodeError:
+            continue
         if raw.get("project_name", "").casefold() == project_name.casefold():
             return _build(raw, path)
     return None
