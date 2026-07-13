@@ -45,7 +45,7 @@ If conflict cannot be resolved with available documents, escalate for Founder de
 2. Prompts, YAML schemas, JSON schemas, command-bar configurations, APIs, and agent configurations are implementation artifacts derived from canonical human-readable governance documents.
 3. Derived artifacts must reference the canonical source document ID and version.
 4. A governance document is not active unless it has: **Document ID, Version, Owner, Approval Status, and Change Log**.
-5. Document IDs are unique, permanent, and must never be reused.
+5. Document IDs are unique, permanent, and must never be reused; superseded or retired documents retain their original IDs in archived state.
 6. No document may claim authority outside its class or precedence level.
 
 ## 6) Mandatory Document Classification
@@ -66,7 +66,14 @@ Every ZOS document must belong to exactly one class:
 2. Each revision must increment version, update effective date, and record change rationale.
 3. Superseded constitutional versions remain archived and referenceable for audit.
 4. No subordinate document may modify constitutional requirements.
-5. Amendment process: **Proposal → Review → Founder Approval → Version Increment → Effective Date → Change Log → Archive Previous Version**.
+5. Amendment process:
+   - Proposal
+   - Review
+   - Founder Approval
+   - Version Increment
+   - Effective Date
+   - Change Log
+   - Archive Previous Version
 
 ## 8) Lifecycle Statuses
 - Draft
