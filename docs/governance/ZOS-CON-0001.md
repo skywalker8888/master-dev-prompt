@@ -77,6 +77,7 @@ Every ZOS document must belong to exactly one class:
 - Archived
 
 ## 9) Normative References
+The following subordinate standards are normative targets for governance rollout. Sequencing and timeline are defined by Founder-prioritized governance planning.
 - ZOS-STD-0001 — Agent Operating Standard (planned)
 - ZOS-STD-0002 — Evidence Standard (planned)
 - ZOS-STD-0003 — Decision Standard (planned)
