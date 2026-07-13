@@ -105,8 +105,10 @@ def validate_governance(governance_dir: Path) -> list[str]:
     for doc in docs:
         match = DOC_ID_RE.match(doc.doc_id)
         if not match:
-            if doc.doc_id != "ZOS-GOV-INDEX":
-                errors.append(f"{doc.path}: invalid Document ID format '{doc.doc_id}'.")
+            if doc.doc_id == "ZOS-GOV-INDEX":
+                doc_by_id[doc.doc_id] = doc
+                continue
+            errors.append(f"{doc.path}: invalid Document ID format '{doc.doc_id}'.")
             continue
 
         doc_class = match.group(1)
