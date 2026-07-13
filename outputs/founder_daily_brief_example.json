@@ -92,20 +92,8 @@
     ],
     "project_health": [
       {
-        "project": "Dear Saigon",
+        "project": "Founder Brief Stabilization",
         "status": "\ud83d\udd34"
-      },
-      {
-        "project": "CoachAI",
-        "status": "\ud83d\udfe1"
-      },
-      {
-        "project": "ZOS Command Center",
-        "status": "\ud83d\udfe2"
-      },
-      {
-        "project": "Marketing",
-        "status": "\ud83d\udfe1"
       }
     ],
     "agent_status": {
