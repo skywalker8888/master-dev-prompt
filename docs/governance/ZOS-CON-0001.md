@@ -11,6 +11,8 @@
 - **Effective Date:** 2026-07-13
 - **Supersedes:** None
 - **Dependencies:** None
+- **Planned Normative References:** ZOS-STD-0002 through ZOS-STD-0010 (planned)
+- **Related Authority:** None
 - **Related Standards:** ZOS-STD-0001 through ZOS-STD-0010 (as defined by this constitution)
 - **Change Log:** 1.0.0 — Initial constitutional baseline approved by Founder.
 - **Compatibility:** All ZOS agents, projects, and governance artifacts

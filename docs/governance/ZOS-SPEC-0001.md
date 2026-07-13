@@ -7,10 +7,14 @@
 - **Status:** Draft
 - **Approval Status:** Pending Founder Approval
 - **Owner:** Founder
+- **Approver:** Founder
 - **Effective Date:** Pending Founder Approval
 - **Supersedes:** ZOS-ACCESS-REGISTRY v1.0.0
-- **Dependencies:** ZOS-CON-0001; ZOS-STD-0009 (planned)
+- **Dependencies:** ZOS-CON-0001
+- **Planned Normative References:** ZOS-STD-0009 — Security Standard (planned)
+- **Related Authority:** ZOS-CON-0001 v1.0.0
 - **Change Log:** 1.0.0 — Reclassified as SPEC and constrained to public-safe structure/template only.
+- **Compatibility:** Public repository structure/template artifact only
 
 ## 2) Purpose
 This document defines the canonical structure and empty template for the ZOS Access Registry.

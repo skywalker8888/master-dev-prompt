@@ -13,7 +13,8 @@ This index is the table of contents for the ZOS governance system and the canoni
 |---|---|---|---|---|---|---|---|
 | ZOS-CON-0001 | Constitution | Active | Founder | 1.0.0 | — | — | — |
 | ZOS-STD-0001 | Agent Operating Standard | Active | Founder | 1.0.0 | ZOS-CON-0001 | ZOS-CON-0001 | ZOS-STD-0009 (planned) |
-| ZOS-SPEC-0001 | Access Registry Specification | Draft | Founder | 1.0.0 | ZOS-CON-0001 | ZOS-STD-0009 (planned) | — |
+| ZOS-SOP-0001 | Fast Correction Protocol | Active | Founder | 1.0.0 | ZOS-CON-0001 | ZOS-CON-0001; ZOS-STD-0001 | — |
+| ZOS-SPEC-0001 | Access Registry Specification | Draft | Founder | 1.0.0 | ZOS-CON-0001 | ZOS-CON-0001 | ZOS-STD-0009 (planned) |
 | ZOS-STD-0002 | Evidence Standard | Planned | Founder | — | ZOS-CON-0001 | — | — |
 | ZOS-STD-0003 | Decision Standard | Planned | Founder | — | ZOS-CON-0001 | — | — |
 | ZOS-STD-0004 | Documentation Standard | Planned | Founder | — | ZOS-CON-0001 | — | — |
@@ -23,3 +24,12 @@ This index is the table of contents for the ZOS governance system and the canoni
 | ZOS-STD-0008 | Deployment Standard | Planned | Founder | — | ZOS-CON-0001 | — | — |
 | ZOS-STD-0009 | Security Standard | Planned | Founder | — | ZOS-CON-0001 | — | — |
 | ZOS-STD-0010 | Quality Assurance Standard | Planned | Founder | — | ZOS-CON-0001 | — | — |
+
+## 4) Agent Start Pack and Validation Artifacts
+- `/home/runner/work/master-dev-prompt/master-dev-prompt/docs/governance/ZOS-CON-0001.md`
+- `/home/runner/work/master-dev-prompt/master-dev-prompt/docs/governance/ZOS-STD-0001.md`
+- `/home/runner/work/master-dev-prompt/master-dev-prompt/docs/governance/ZOS-GOV-INDEX.md`
+- `/home/runner/work/master-dev-prompt/master-dev-prompt/docs/governance/ZOS-SOP-0001.md`
+- `/home/runner/work/master-dev-prompt/master-dev-prompt/docs/governance/templates/ZOS-GOV-DOCUMENT-TEMPLATE.md`
+- `/home/runner/work/master-dev-prompt/master-dev-prompt/docs/governance/templates/ZOS-GOV-METADATA-TEMPLATE.md`
+- `/home/runner/work/master-dev-prompt/master-dev-prompt/validate_zos_governance.py`

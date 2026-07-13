@@ -11,9 +11,10 @@
 - **Effective Date:** 2026-07-13
 - **Supersedes:** None
 - **Dependencies:** ZOS-CON-0001
-- **Planned Normative Reference:** ZOS-STD-0009 — Security Standard
+- **Planned Normative References:** ZOS-STD-0009 — Security Standard (planned)
 - **Related Authority:** ZOS-CON-0001 v1.0.0
 - **Change Log:** 1.0.0 — Initial Agent Operating Standard approved by Founder.
+- **Compatibility:** All ZOS agents and agent-facing implementation artifacts
 - **Ratified By:** Founder
 - **Ratification Date:** 2026-07-13
 - **Ratification Status:** Approved
