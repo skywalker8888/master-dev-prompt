@@ -4,15 +4,15 @@
 - **Document ID:** ZOS-CON-0001
 - **Title:** ZOS Constitution
 - **Version:** 1.0.0
-- **Status:** Draft
-- **Approval Status:** Pending Founder Approval
+- **Status:** Active
+- **Approval Status:** Approved
 - **Owner:** Founder
 - **Approver:** Founder
-- **Effective Date:** Pending Founder Approval
+- **Effective Date:** 2026-07-13
 - **Supersedes:** None
 - **Dependencies:** None
 - **Related Standards:** ZOS-STD-0001 through ZOS-STD-0010 (as defined by this constitution)
-- **Change Log:** 1.0.0 — Initial draft submitted for founder review
+- **Change Log:** 1.0.0 — Initial constitutional baseline approved by Founder.
 - **Compatibility:** All ZOS agents, projects, and governance artifacts
 
 ## 2) Purpose
@@ -30,10 +30,9 @@ The top-level governance hierarchy is:
    - **ZOS-ADR** (Architecture Decision Records)
    - **ZOS-PLAN** (Project Plans)
    - **ZOS-TASK** (Work Items)
-   - **ZOS-TEST** (Test Specifications)
    - **ZOS-REP** (Reports)
 
-Lower levels must not conflict with higher levels. If conflict occurs, the higher-level document governs.
+Lower levels must not conflict with higher levels. If conflict occurs, the higher-level document governs. No document below the Constitution may override it.
 
 ## 4) Document Precedence Rules
 When guidance conflicts, resolve in this order:
@@ -68,8 +67,10 @@ Every ZOS document must belong to exactly one class:
 - **ADR** Architecture Decision Record
 - **PLAN** Project Plan
 - **TASK** Work Item
-- **TEST** Test Specification
 - **REP** Report
+
+All future governance documents must include this requirement verbatim:
+“This document shall not redefine governance established by ZOS-CON-0001. Where conflict exists, ZOS-CON-0001 prevails.”
 
 ## 7) Constitutional Change Control
 1. Constitutional changes require explicit Founder approval.
@@ -114,8 +115,8 @@ The following subordinate standards are normative targets for governance rollout
 - ZOS-STD-0010 — Quality Assurance Standard (planned)
 
 ## 10) Ratification
-This document remains in draft state until Founder approval is issued and status is updated according to lifecycle controls.
+This document is ratified and active as the highest authority inside ZOS.
 
-- **Ratified By:** Pending
-- **Ratification Date:** Pending
-- **Ratification Status:** Pending
+- **Ratified By:** Founder
+- **Ratification Date:** 2026-07-13
+- **Ratification Status:** Approved
