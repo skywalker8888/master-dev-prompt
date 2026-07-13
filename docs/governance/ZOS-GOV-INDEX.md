@@ -6,6 +6,7 @@ This index is the table of contents for the ZOS governance system and the canoni
 ## 2) Governance Baseline
 - ZOS-CON-0001 v1.0.0 is frozen as the active constitutional baseline.
 - No subordinate governance document may override ZOS-CON-0001.
+- This document shall not redefine governance established by ZOS-CON-0001. Where conflict exists, ZOS-CON-0001 prevails.
 
 ## 3) Governance Catalog
 | ID | Title | Status | Owner | Version | Constitution Reference |
