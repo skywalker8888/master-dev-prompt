@@ -50,14 +50,14 @@ If any item fails, the agent must stop before editing and report the exact faili
 
 ## 6) Fixed Metadata and Document Templates
 Agents must start from approved templates:
-- `/home/runner/work/master-dev-prompt/master-dev-prompt/docs/governance/templates/ZOS-GOV-DOCUMENT-TEMPLATE.md`
-- `/home/runner/work/master-dev-prompt/master-dev-prompt/docs/governance/templates/ZOS-GOV-METADATA-TEMPLATE.md`
+- `docs/governance/templates/ZOS-GOV-DOCUMENT-TEMPLATE.md`
+- `docs/governance/templates/ZOS-GOV-METADATA-TEMPLATE.md`
 
 Agents must not invent metadata fields, status values, document classes, or governance rules without explicit Founder approval.
 
 ## 7) Automated Governance Validator
 Agents must run:
-- `python3 /home/runner/work/master-dev-prompt/master-dev-prompt/validate_zos_governance.py`
+- `python3 validate_zos_governance.py`
 
 Validator checks must include:
 - Valid document prefix and ID format

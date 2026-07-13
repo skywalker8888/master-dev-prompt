@@ -17,7 +17,7 @@
 - **Compatibility:** <Scope of applicability>
 
 ## 2) Constitutional Compliance Statement
-“This document shall not redefine governance established by ZOS-CON-0001. Where conflict exists, ZOS-CON-0001 prevails.”
+This document shall not redefine governance established by ZOS-CON-0001. Where conflict exists, ZOS-CON-0001 prevails.
 
 ## 3) Purpose
 <Purpose and scope>

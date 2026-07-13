@@ -33,7 +33,7 @@ CONSTITUTIONAL_SENTENCE = (
 DOC_ID_RE = re.compile(r"^ZOS-([A-Z]+)-(\d{4})$")
 METADATA_RE = re.compile(r"^- \*\*(.+?):\*\*\s*(.+?)\s*$", re.MULTILINE)
 INDEX_ROW_RE = re.compile(
-    r"^\|\s*(ZOS-[A-Z]+-\d{4})\s*\|\s*([^|]+?)\s*\|\s*([^|]+?)\s*\|\s*([^|]+?)\s*\|\s*([^|]+?)\s*\|",
+    r"^\|\s*(ZOS-[A-Z]+-\d{4})\s*\|\s*[^|]+?\s*\|\s*([^|]+?)\s*\|\s*[^|]+?\s*\|\s*([^|]+?)\s*\|",
     re.MULTILINE,
 )
 SEPARATOR_SPLIT_RE = re.compile(r"[;,]")
@@ -92,7 +92,7 @@ def _validate_access_registry_template(doc: GovernanceDoc, errors: list[str]) ->
         if len(cells) < 14:
             continue
         protected = cells[:-1]
-        if any(value for value in protected):
+        if any(value.strip() for value in protected if value.strip()):
             errors.append(f"{doc.path}: populated access-registry row found in public specification.")
             break
 
@@ -140,8 +140,10 @@ def validate_governance(governance_dir: Path) -> list[str]:
             errors.append(f"{doc.path}: Change Log does not start with Version '{version}'.")
 
         for pattern in SECRET_PATTERNS:
-            if pattern.search(doc.content):
-                errors.append(f"{doc.path}: potential secret detected ({pattern.pattern}).")
+            match = pattern.search(doc.content)
+            if match:
+                preview = match.group(0).replace("\n", " ")[:32]
+                errors.append(f"{doc.path}: potential secret detected ({pattern.pattern}) near '{preview}...'.")
 
         dependencies = _split_field_values(doc.metadata.get("Dependencies", ""))
         planned_refs = _split_field_values(doc.metadata.get("Planned Normative References", ""))
@@ -171,7 +173,7 @@ def validate_governance(governance_dir: Path) -> list[str]:
 
     index_doc = doc_by_id.get("ZOS-GOV-INDEX")
     if index_doc:
-        for doc_id, _title, index_status, _owner, index_version in INDEX_ROW_RE.findall(index_doc.content):
+        for doc_id, index_status, index_version in INDEX_ROW_RE.findall(index_doc.content):
             doc = doc_by_id.get(doc_id)
             if not doc:
                 continue
@@ -191,9 +193,10 @@ def validate_governance(governance_dir: Path) -> list[str]:
 
 def main() -> int:
     parser = argparse.ArgumentParser(description="Validate ZOS governance documents.")
+    default_governance_dir = Path(__file__).resolve().parent / "docs" / "governance"
     parser.add_argument(
         "--governance-dir",
-        default="/home/runner/work/master-dev-prompt/master-dev-prompt/docs/governance",
+        default=str(default_governance_dir),
         help="Path to governance docs directory.",
     )
     args = parser.parse_args()

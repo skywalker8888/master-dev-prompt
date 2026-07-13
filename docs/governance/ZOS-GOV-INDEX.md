@@ -26,10 +26,10 @@ This index is the table of contents for the ZOS governance system and the canoni
 | ZOS-STD-0010 | Quality Assurance Standard | Planned | Founder | — | ZOS-CON-0001 | — | — |
 
 ## 4) Agent Start Pack and Validation Artifacts
-- `/home/runner/work/master-dev-prompt/master-dev-prompt/docs/governance/ZOS-CON-0001.md`
-- `/home/runner/work/master-dev-prompt/master-dev-prompt/docs/governance/ZOS-STD-0001.md`
-- `/home/runner/work/master-dev-prompt/master-dev-prompt/docs/governance/ZOS-GOV-INDEX.md`
-- `/home/runner/work/master-dev-prompt/master-dev-prompt/docs/governance/ZOS-SOP-0001.md`
-- `/home/runner/work/master-dev-prompt/master-dev-prompt/docs/governance/templates/ZOS-GOV-DOCUMENT-TEMPLATE.md`
-- `/home/runner/work/master-dev-prompt/master-dev-prompt/docs/governance/templates/ZOS-GOV-METADATA-TEMPLATE.md`
-- `/home/runner/work/master-dev-prompt/master-dev-prompt/validate_zos_governance.py`
+- `docs/governance/ZOS-CON-0001.md`
+- `docs/governance/ZOS-STD-0001.md`
+- `docs/governance/ZOS-GOV-INDEX.md`
+- `docs/governance/ZOS-SOP-0001.md`
+- `docs/governance/templates/ZOS-GOV-DOCUMENT-TEMPLATE.md`
+- `docs/governance/templates/ZOS-GOV-METADATA-TEMPLATE.md`
+- `validate_zos_governance.py`
