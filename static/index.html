@@ -396,7 +396,7 @@ async function run() {
                     streamOut.scrollTop = streamOut.scrollHeight;
                 } else if (msg.done && msg.result) {
                     streamWrap.style.display = 'none';
-                    render(msg.result);
+                    render(msg.result, msg.founder_daily_brief);
                     wrap.classList.add('on');
                     hint.textContent = '✓ done';
                 } else if (msg.error) {
@@ -454,8 +454,34 @@ function fields(pairs) {
     ).join('');
 }
 
-function render(d) {
+function render(d, brief) {
     let html = '';
+
+    if (brief) {
+        const decisions = (brief.decisions_requiring_approval || []).map((item, i) => `${i + 1}. ${esc(item)}`).join('<br>') || 'None';
+        const blockers = (brief.current_blockers || []).map(item =>
+            `<div class="ms-row"><div><strong>${esc(item.project || 'Project')}</strong> · ${esc(item.owner || 'Owner')}</div><div class="item-owner">waiting on: ${esc(item.waiting_on || 'None')}</div></div>`
+        ).join('') || '<div class="fld-val">None</div>';
+        const completed = (brief.completed_since_last_brief || []).map(item => `✓ ${esc(item)}`).join('<br>') || 'None';
+        const projectHealth = (brief.project_health || []).map(item => `${esc(item.project)} ${esc(item.status)}`).join('<br>') || 'None';
+        const agentStatus = brief.agent_status || {};
+        const top3 = (brief.today_top_3 || []).map((item, i) => `${i + 1}. ${esc(item)}`).join('<br>') || 'None';
+        const alerts = brief.alerts || {};
+
+        const body = `
+            <div class="fld"><div class="fld-key">date</div><div class="fld-val">${esc(brief.date || '')}</div></div>
+            <div class="fld"><div class="fld-key">today's focus</div><div class="fld-val">${esc(brief.today_focus || '')}</div></div>
+            <div class="fld"><div class="fld-key">🔴 decisions requiring approval</div><div class="fld-val">${decisions}</div></div>
+            <div class="fld"><div class="fld-key">🟡 current blockers</div><div class="fld-val">${blockers}</div></div>
+            <div class="fld"><div class="fld-key">🟢 completed since last brief</div><div class="fld-val">${completed}</div></div>
+            <div class="fld"><div class="fld-key">📊 project health</div><div class="fld-val">${projectHealth}</div></div>
+            <div class="fld"><div class="fld-key">🤖 agent status</div><div class="fld-val">Running: ${agentStatus.Running || 0}<br>Waiting: ${agentStatus.Waiting || 0}<br>Blocked: ${agentStatus.Blocked || 0}<br>Paused: ${agentStatus.Paused || 0}<br>Needs Review: ${agentStatus['Needs Review'] || 0}</div></div>
+            <div class="fld"><div class="fld-key">⚠ alerts</div><div class="fld-val">Security: ${esc(alerts.security || 'clear')}<br>Budget: ${esc(alerts.budget || 'clear')}<br>Deadlines: ${esc(alerts.deadlines || 'clear')}<br>Failures: ${esc(alerts.failures || 'clear')}</div></div>
+            <div class="fld"><div class="fld-key">📅 today's top 3</div><div class="fld-val">${top3}</div></div>
+            <div class="fld"><div class="fld-key">next founder action</div><div class="fld-val">${esc(brief.next_founder_action || '')}</div></div>
+        `;
+        html += section('FOUNDER DAILY BRIEF', '#f59e0b', body, 0);
+    }
 
     // Design doc
     const dd = fields([
@@ -466,7 +492,7 @@ function render(d) {
         ['decisions', d.design_doc?.decisions],
         ['open questions & risks', d.design_doc?.open_questions_risks],
     ]);
-    if (dd) html += section('DESIGN DOC', '#f59e0b', dd, 0);
+    if (dd) html += section('DESIGN DOC', '#f59e0b', dd, 60);
 
     // PM summary
     const pm = fields([
@@ -474,7 +500,7 @@ function render(d) {
         ['scope', d.pm_summary?.scope],
         ['timeline implications', d.pm_summary?.implications_for_timeline],
     ]);
-    if (pm) html += section('PM SUMMARY', '#06b6d4', pm, 60);
+    if (pm) html += section('PM SUMMARY', '#06b6d4', pm, 120);
 
     // Actions
     const items = (d.actions?.items || []).filter(i => i.description);
@@ -492,7 +518,7 @@ function render(d) {
                     ${i.type ? `<span class="tag t-plain">${esc(i.type)}</span>` : ''}
                 </div>
             </div>`).join('');
-        html += section('ACTION ITEMS', '#22c55e', body, 120);
+        html += section('ACTION ITEMS', '#22c55e', body, 180);
     }
 
     // Implementation plan
@@ -525,7 +551,7 @@ function render(d) {
                     </div>
                 </div>`).join('');
         }
-        html += section('IMPLEMENTATION PLAN', '#a855f7', body, 180);
+        html += section('IMPLEMENTATION PLAN', '#a855f7', body, 240);
     }
 
     // Agent task report
@@ -604,7 +630,7 @@ function render(d) {
                 </div>`).join('');
         }
 
-        html += section('AGENT TASK REPORT', '#14b8a6', body, 240);
+        html += section('AGENT TASK REPORT', '#14b8a6', body, 300);
     }
 
     // Code suggestions
@@ -634,7 +660,7 @@ function render(d) {
                 ${s.notes ? `<div class="snip-notes">${esc(s.notes)}</div>` : ''}
             </div>`;
         });
-        html += section('CODE SUGGESTIONS', '#3b82f6', body, 300);
+        html += section('CODE SUGGESTIONS', '#3b82f6', body, 360);
     }
 
     document.getElementById('sections').innerHTML = html;

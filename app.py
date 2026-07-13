@@ -13,6 +13,7 @@ import json
 import os
 from pathlib import Path
 from typing import Annotated
+from datetime import date
 
 import anthropic
 from dotenv import load_dotenv
@@ -51,6 +52,108 @@ class ProcessRequest(BaseModel):
 
 class ProcessResponse(BaseModel):
     result: dict
+    founder_daily_brief: dict
+
+
+def _split_lines(text: str | None) -> list[str]:
+    if not text:
+        return []
+    return [line.strip(" -•\t") for line in text.splitlines() if line.strip()]
+
+
+def _derive_health(result: dict) -> str:
+    actions = result.get("actions", {}).get("items", []) or []
+    high = sum(1 for item in actions if item.get("priority") == "high")
+    medium = sum(1 for item in actions if item.get("priority") == "medium")
+    if high > 0:
+        return "🔴"
+    if medium > 2:
+        return "🟡"
+    return "🟢"
+
+
+def build_founder_daily_brief(result: dict) -> dict:
+    design_doc = result.get("design_doc", {}) or {}
+    actions = result.get("actions", {}).get("items", []) or []
+    impl = result.get("implementation_plan", {}) or {}
+    report = result.get("agent_task_report", {}) or {}
+
+    open_questions = _split_lines(design_doc.get("open_questions_risks"))
+    decisions = [line for line in open_questions if any(w in line.lower() for w in ("decide", "approval", "founder"))][:3]
+    if len(decisions) < 3:
+        needed = 3 - len(decisions)
+        decisions.extend([item.get("description", "") for item in actions if item.get("priority") == "high"][:needed])
+
+    blockers = []
+    for milestone in impl.get("milestones", []) or []:
+        risk = (milestone.get("risks") or "").strip()
+        if risk:
+            blockers.append({
+                "project": milestone.get("name", "Unspecified"),
+                "owner": "Unassigned",
+                "waiting_on": risk,
+            })
+    blockers = blockers[:3]
+
+    completed = []
+    for item in report.get("master_checklist", []) or []:
+        if item.get("checked"):
+            completed.append(item.get("task_title", "Completed item"))
+    completed = completed[:5]
+
+    status_counts = {"Running": 0, "Waiting": 0, "Blocked": 0, "Paused": 0, "Needs Review": 0}
+    for slide in report.get("task_slides", []) or []:
+        status = (slide.get("status") or "").strip().lower()
+        if status in {"in progress", "running"}:
+            status_counts["Running"] += 1
+        elif status in {"waiting", "pending"}:
+            status_counts["Waiting"] += 1
+        elif status in {"blocked"}:
+            status_counts["Blocked"] += 1
+        elif status in {"paused"}:
+            status_counts["Paused"] += 1
+        elif status in {"review", "needs review"}:
+            status_counts["Needs Review"] += 1
+
+    risk_blob = " ".join([
+        design_doc.get("open_questions_risks", "") or "",
+        " ".join((m.get("risks", "") or "") for m in (impl.get("milestones", []) or [])),
+    ]).lower()
+    alerts = {
+        "security": "yes" if "security" in risk_blob else "clear",
+        "budget": "yes" if any(token in risk_blob for token in ("budget", "cost", "pricing")) else "clear",
+        "deadlines": "yes" if any(token in risk_blob for token in ("delay", "deadline", "eta")) else "clear",
+        "failures": "yes" if any(token in risk_blob for token in ("failure", "failed", "error")) else "clear",
+    }
+
+    top_priorities = [item.get("description", "") for item in actions if item.get("priority") == "high"][:3]
+    if len(top_priorities) < 3:
+        needed = 3 - len(top_priorities)
+        top_priorities.extend([item.get("description", "") for item in actions if item.get("priority") == "medium"][:needed])
+
+    next_action = "Review top high-priority action and approve immediate owner assignments."
+    if decisions:
+        next_action = f"Approve: {decisions[0]}"
+    elif blockers:
+        next_action = f"Unblock: {blockers[0]['project']} — {blockers[0]['waiting_on']}"
+
+    return {
+        "date": str(date.today()),
+        "today_focus": design_doc.get("decisions") or design_doc.get("requirements_constraints") or "Execution priorities and decision velocity.",
+        "decisions_requiring_approval": [item for item in decisions if item],
+        "current_blockers": blockers,
+        "completed_since_last_brief": [item for item in completed if item],
+        "project_health": [
+            {"project": "Dear Saigon", "status": _derive_health(result)},
+            {"project": "CoachAI", "status": "🟡"},
+            {"project": "ZOS Command Center", "status": "🟢"},
+            {"project": "Marketing", "status": "🟡"},
+        ],
+        "agent_status": status_counts,
+        "alerts": alerts,
+        "today_top_3": [item for item in top_priorities if item],
+        "next_founder_action": next_action,
+    }
 
 
 @app.post("/process", response_model=ProcessResponse)
@@ -82,7 +185,8 @@ def process_transcript(
             detail=f"Model returned invalid JSON: {e}. Raw: {raw[:200]}",
         )
 
-    return ProcessResponse(result=result)
+    founder_daily_brief = build_founder_daily_brief(result)
+    return ProcessResponse(result=result, founder_daily_brief=founder_daily_brief)
 
 
 @app.post("/process/stream")
@@ -112,7 +216,8 @@ def process_transcript_stream(
 
         try:
             result = json.loads(accumulated)
-            yield f"data: {json.dumps({'done': True, 'result': result})}\n\n"
+            founder_daily_brief = build_founder_daily_brief(result)
+            yield f"data: {json.dumps({'done': True, 'result': result, 'founder_daily_brief': founder_daily_brief})}\n\n"
         except json.JSONDecodeError as e:
             yield f"data: {json.dumps({'error': str(e), 'raw': accumulated[:300]})}\n\n"
 

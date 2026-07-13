@@ -155,6 +155,7 @@ uvicorn app:app --reload
 
 - `GET /` — opens the web UI (paste transcript, get rendered artifacts)
 - `POST /process` — returns structured JSON from any transcript
+- `POST /process` and `POST /process/stream` also return a generated `founder_daily_brief` summary for execution-focused review
 - `GET /health` — liveness check
 
 Optional: set `SERVER_API_KEY` to require an `X-Api-Key` header on all requests.
