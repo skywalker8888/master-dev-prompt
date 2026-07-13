@@ -10,7 +10,7 @@
 - **Approver:** Founder
 - **Effective Date:** Pending Founder Approval
 - **Supersedes:** None
-- **Dependencies:** ZOS-CON-0001
+- **Dependencies:** ZOS-CON-0001; ZOS-STD-0009 (security controls authority when active)
 - **Related Authority:** ZOS-CON-0001 v1.0.0
 - **Change Log:** 1.0.0 — Canonical operating-standard draft completed for Founder review.
 
