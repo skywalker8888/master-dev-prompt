@@ -52,9 +52,10 @@ If conflict cannot be resolved with available documents, escalate for Founder de
 2. Prompts, YAML schemas, JSON schemas, command-bar configurations, APIs, and agent configurations are implementation artifacts derived from canonical human-readable governance documents.
 3. Derived artifacts must reference the canonical source document ID and version.
 4. Minimum reference format for derived artifacts: `source_document_id`, `source_version`, and `source_location` (URL/path/identifier) in metadata header or equivalent manifest.
+   - Example metadata tuple: `source_document_id: ZOS-CON-0001`, `source_version: 1.0.0`, `source_location: /docs/governance/ZOS-CON-0001.md`.
 5. A governance document is not active unless it has: **Document ID, Version, Owner, Approval Status, and Change Log**.
 6. Document IDs are unique, permanent, and must never be reused; superseded or retired documents retain their original IDs in archived state.
-7. A document class change (for example POL to STD) requires a new document ID in the target class with explicit supersession linkage.
+7. A document class change (e.g., POL to STD) requires a new document ID in the target class with explicit supersession linkage.
 8. No document may claim authority outside its class or precedence level.
 
 ## 6) Mandatory Document Classification
