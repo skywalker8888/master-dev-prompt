@@ -4,14 +4,15 @@
 - **Document ID:** ZOS-CON-0001
 - **Title:** ZOS Constitution
 - **Version:** 1.0.0
-- **Status:** Active
+- **Status:** Draft
+- **Approval Status:** Pending Founder Approval
 - **Owner:** Founder
 - **Approver:** Founder
-- **Effective Date:** 2026-07-13
+- **Effective Date:** Pending Founder Approval
 - **Supersedes:** None
 - **Dependencies:** None
 - **Related Standards:** ZOS-STD-0001 through ZOS-STD-0010 (as defined by this constitution)
-- **Change Log:** 1.0.0 — Initial ratified constitution
+- **Change Log:** 1.0.0 — Initial draft submitted for founder review
 - **Compatibility:** All ZOS agents, projects, and governance artifacts
 
 ## 2) Purpose
@@ -41,9 +42,11 @@ If conflict cannot be resolved with available documents, escalate for Founder de
 
 ## 5) Source-of-Truth Rules
 1. The **human-readable canonical document** is the source of truth for each governance artifact.
-2. Machine-readable formats, prompts, schemas, and configurations are **derived artifacts** and must reference the canonical source document ID and version.
-3. A governance document is not active unless it has: **Document ID, Version, Owner, Approval Status, and Change Log**.
-4. No document may claim authority outside its class or precedence level.
+2. Prompts, YAML schemas, JSON schemas, command-bar configurations, APIs, and agent configurations are implementation artifacts derived from canonical human-readable governance documents.
+3. Derived artifacts must reference the canonical source document ID and version.
+4. A governance document is not active unless it has: **Document ID, Version, Owner, Approval Status, and Change Log**.
+5. Document IDs are unique, permanent, and must never be reused.
+6. No document may claim authority outside its class or precedence level.
 
 ## 6) Mandatory Document Classification
 Every ZOS document must belong to exactly one class:
@@ -63,10 +66,31 @@ Every ZOS document must belong to exactly one class:
 2. Each revision must increment version, update effective date, and record change rationale.
 3. Superseded constitutional versions remain archived and referenceable for audit.
 4. No subordinate document may modify constitutional requirements.
+5. Amendment process: **Proposal → Review → Founder Approval → Version Increment → Effective Date → Change Log → Archive Previous Version**.
 
-## 8) Ratification
-This document is ratified as the constitutional foundation for all future ZOS standards and governance artifacts.
+## 8) Lifecycle Statuses
+- Draft
+- Under Review
+- Approved
+- Active
+- Superseded
+- Archived
 
-- **Ratified By:** Founder
-- **Ratification Date:** 2026-07-13
-- **Ratification Status:** Approved
+## 9) Normative References
+- ZOS-STD-0001 — Agent Operating Standard (planned)
+- ZOS-STD-0002 — Evidence Standard (planned)
+- ZOS-STD-0003 — Decision Standard (planned)
+- ZOS-STD-0004 — Documentation Standard (planned)
+- ZOS-STD-0005 — Repository Standard (planned)
+- ZOS-STD-0006 — Agent Lifecycle Standard (planned)
+- ZOS-STD-0007 — Project Lifecycle Standard (planned)
+- ZOS-STD-0008 — Deployment Standard (planned)
+- ZOS-STD-0009 — Security Standard (planned)
+- ZOS-STD-0010 — Quality Assurance Standard (planned)
+
+## 10) Ratification
+This document remains in draft state until Founder approval is issued and status is updated according to lifecycle controls.
+
+- **Ratified By:** Pending
+- **Ratification Date:** Pending
+- **Ratification Status:** Pending
