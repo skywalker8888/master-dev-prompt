@@ -160,6 +160,27 @@ uvicorn app:app --reload
 
 Optional: set `SERVER_API_KEY` to require an `X-Api-Key` header on all requests.
 
+### Founder Daily Brief (v0.1) local generation
+
+Generate a brief from structured output without calling the API:
+
+```bash
+python3 - <<'PY'
+import json
+from pathlib import Path
+from app import build_founder_daily_brief
+
+result = json.loads(Path("outputs/sample_transcript.json").read_text())
+brief = build_founder_daily_brief(result)
+Path("outputs/founder_daily_brief_from_sample_transcript.json").write_text(
+    json.dumps(brief, indent=2)
+)
+print("wrote outputs/founder_daily_brief_from_sample_transcript.json")
+PY
+```
+
+Example brief with realistic sample project data: `outputs/founder_daily_brief_example.json`
+
 ### Minimal SDK snippet
 
 ```python

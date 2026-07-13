@@ -102,18 +102,25 @@ def build_founder_daily_brief(result: dict) -> dict:
     completed = completed[:5]
 
     status_counts = {"Running": 0, "Waiting": 0, "Blocked": 0, "Paused": 0, "Needs Review": 0}
+    attention_status = []
     for slide in report.get("task_slides", []) or []:
         status = (slide.get("status") or "").strip().lower()
+        task_title = slide.get("task_title", "Untitled task")
+        agent_name = slide.get("agent_name", "Unassigned")
         if status in {"in progress", "running"}:
             status_counts["Running"] += 1
         elif status in {"waiting", "pending"}:
             status_counts["Waiting"] += 1
+            attention_status.append(f"{task_title} ({agent_name}) is waiting")
         elif status in {"blocked"}:
             status_counts["Blocked"] += 1
+            attention_status.append(f"{task_title} ({agent_name}) is blocked")
         elif status in {"paused"}:
             status_counts["Paused"] += 1
+            attention_status.append(f"{task_title} ({agent_name}) is paused")
         elif status in {"review", "needs review"}:
             status_counts["Needs Review"] += 1
+            attention_status.append(f"{task_title} ({agent_name}) needs review")
 
     risk_blob = " ".join([
         design_doc.get("open_questions_risks", "") or "",
@@ -137,12 +144,18 @@ def build_founder_daily_brief(result: dict) -> dict:
     elif blockers:
         next_action = f"Unblock: {blockers[0]['project']} — {blockers[0]['waiting_on']}"
 
+    founder_approvals_required = [item for item in decisions if item]
+    completed_since_last_brief = [item for item in completed if item]
+    today_top_three_priorities = [item for item in top_priorities if item]
+
     return {
         "date": str(date.today()),
         "today_focus": design_doc.get("decisions") or design_doc.get("requirements_constraints") or "Execution priorities and decision velocity.",
-        "decisions_requiring_approval": [item for item in decisions if item],
+        "decisions_requiring_approval": founder_approvals_required,
+        "founder_approvals_required": founder_approvals_required,
         "current_blockers": blockers,
-        "completed_since_last_brief": [item for item in completed if item],
+        "completed_since_last_brief": completed_since_last_brief,
+        "work_completed_since_previous_brief": completed_since_last_brief,
         "project_health": [
             {"project": "Dear Saigon", "status": _derive_health(result)},
             {"project": "CoachAI", "status": "🟡"},
@@ -150,8 +163,10 @@ def build_founder_daily_brief(result: dict) -> dict:
             {"project": "Marketing", "status": "🟡"},
         ],
         "agent_status": status_counts,
+        "agent_status_requiring_attention": attention_status[:5],
         "alerts": alerts,
-        "today_top_3": [item for item in top_priorities if item],
+        "today_top_3": today_top_three_priorities,
+        "today_top_three_priorities": today_top_three_priorities,
         "next_founder_action": next_action,
     }
 

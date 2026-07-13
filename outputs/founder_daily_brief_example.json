@@ -1,0 +1,140 @@
+{
+  "sample_project_data": {
+    "design_doc": {
+      "requirements_constraints": "Ship Founder Daily Brief v0.1 in current session with no governance redesign.",
+      "open_questions_risks": "Founder approval required for release note wording.\nSecurity review pending for alert handling.",
+      "decisions": "Prioritize Command Center execution work over governance updates."
+    },
+    "actions": {
+      "items": [
+        {
+          "description": "Approve brief release wording",
+          "owner": "Founder",
+          "priority": "high"
+        },
+        {
+          "description": "Finalize minimal integration tests",
+          "owner": "Agent",
+          "priority": "high"
+        },
+        {
+          "description": "Publish operator run instructions",
+          "owner": "Agent",
+          "priority": "medium"
+        }
+      ]
+    },
+    "implementation_plan": {
+      "milestones": [
+        {
+          "name": "Founder Brief Stabilization",
+          "risks": "Waiting on founder final approval and security sign-off"
+        }
+      ]
+    },
+    "agent_task_report": {
+      "master_checklist": [
+        {
+          "task_title": "Wire brief sections",
+          "checked": true
+        },
+        {
+          "task_title": "Validate schema and tests",
+          "checked": true
+        }
+      ],
+      "task_slides": [
+        {
+          "agent_name": "Build Agent",
+          "task_title": "Execute full test suite",
+          "status": "running"
+        },
+        {
+          "agent_name": "Review Agent",
+          "task_title": "Review output wording",
+          "status": "needs review"
+        },
+        {
+          "agent_name": "Ops Agent",
+          "task_title": "Prepare release handoff",
+          "status": "waiting"
+        }
+      ]
+    }
+  },
+  "founder_daily_brief": {
+    "date": "2026-07-13",
+    "today_focus": "Prioritize Command Center execution work over governance updates.",
+    "decisions_requiring_approval": [
+      "Founder approval required for release note wording.",
+      "Approve brief release wording",
+      "Finalize minimal integration tests"
+    ],
+    "founder_approvals_required": [
+      "Founder approval required for release note wording.",
+      "Approve brief release wording",
+      "Finalize minimal integration tests"
+    ],
+    "current_blockers": [
+      {
+        "project": "Founder Brief Stabilization",
+        "owner": "Unassigned",
+        "waiting_on": "Waiting on founder final approval and security sign-off"
+      }
+    ],
+    "completed_since_last_brief": [
+      "Wire brief sections",
+      "Validate schema and tests"
+    ],
+    "work_completed_since_previous_brief": [
+      "Wire brief sections",
+      "Validate schema and tests"
+    ],
+    "project_health": [
+      {
+        "project": "Dear Saigon",
+        "status": "\ud83d\udd34"
+      },
+      {
+        "project": "CoachAI",
+        "status": "\ud83d\udfe1"
+      },
+      {
+        "project": "ZOS Command Center",
+        "status": "\ud83d\udfe2"
+      },
+      {
+        "project": "Marketing",
+        "status": "\ud83d\udfe1"
+      }
+    ],
+    "agent_status": {
+      "Running": 1,
+      "Waiting": 1,
+      "Blocked": 0,
+      "Paused": 0,
+      "Needs Review": 1
+    },
+    "agent_status_requiring_attention": [
+      "Review output wording (Review Agent) needs review",
+      "Prepare release handoff (Ops Agent) is waiting"
+    ],
+    "alerts": {
+      "security": "yes",
+      "budget": "clear",
+      "deadlines": "clear",
+      "failures": "clear"
+    },
+    "today_top_3": [
+      "Approve brief release wording",
+      "Finalize minimal integration tests",
+      "Publish operator run instructions"
+    ],
+    "today_top_three_priorities": [
+      "Approve brief release wording",
+      "Finalize minimal integration tests",
+      "Publish operator run instructions"
+    ],
+    "next_founder_action": "Approve: Founder approval required for release note wording."
+  }
+}
