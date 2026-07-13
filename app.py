@@ -35,6 +35,10 @@ def verify_api_key(x_api_key: Annotated[str | None, Header()] = None) -> None:
 
 _PROMPT_PATH = Path(__file__).parent / "master_dev_prompt.txt"
 _system_prompt: str | None = None
+MAX_DAILY_BRIEF_ITEMS = 3
+MAX_COMPLETED_ITEMS = 5
+MEDIUM_PRIORITY_YELLOW_THRESHOLD = 2
+MAX_ATTENTION_STATUS_ITEMS = 5
 
 
 def _get_system_prompt() -> str:
@@ -67,7 +71,7 @@ def _derive_health(result: dict) -> str:
     medium = sum(1 for item in actions if item.get("priority") == "medium")
     if high > 0:
         return "🔴"
-    if medium > 2:
+    if medium > MEDIUM_PRIORITY_YELLOW_THRESHOLD:
         return "🟡"
     return "🟢"
 
@@ -79,9 +83,9 @@ def build_founder_daily_brief(result: dict) -> dict:
     report = result.get("agent_task_report", {}) or {}
 
     open_questions = _split_lines(design_doc.get("open_questions_risks"))
-    decisions = [line for line in open_questions if any(w in line.lower() for w in ("decide", "approval", "founder"))][:3]
-    if len(decisions) < 3:
-        needed = 3 - len(decisions)
+    decisions = [line for line in open_questions if any(w in line.lower() for w in ("decide", "approval", "founder"))][:MAX_DAILY_BRIEF_ITEMS]
+    if len(decisions) < MAX_DAILY_BRIEF_ITEMS:
+        needed = MAX_DAILY_BRIEF_ITEMS - len(decisions)
         decisions.extend([item.get("description", "") for item in actions if item.get("priority") == "high"][:needed])
 
     blockers = []
@@ -93,13 +97,13 @@ def build_founder_daily_brief(result: dict) -> dict:
                 "owner": "Unassigned",
                 "waiting_on": risk,
             })
-    blockers = blockers[:3]
+    blockers = blockers[:MAX_DAILY_BRIEF_ITEMS]
 
     completed = []
     for item in report.get("master_checklist", []) or []:
         if item.get("checked"):
             completed.append(item.get("task_title", "Completed item"))
-    completed = completed[:5]
+    completed = completed[:MAX_COMPLETED_ITEMS]
 
     status_counts = {"Running": 0, "Waiting": 0, "Blocked": 0, "Paused": 0, "Needs Review": 0}
     attention_status = []
@@ -133,9 +137,9 @@ def build_founder_daily_brief(result: dict) -> dict:
         "failures": "yes" if any(token in risk_blob for token in ("failure", "failed", "error")) else "clear",
     }
 
-    top_priorities = [item.get("description", "") for item in actions if item.get("priority") == "high"][:3]
-    if len(top_priorities) < 3:
-        needed = 3 - len(top_priorities)
+    top_priorities = [item.get("description", "") for item in actions if item.get("priority") == "high"][:MAX_DAILY_BRIEF_ITEMS]
+    if len(top_priorities) < MAX_DAILY_BRIEF_ITEMS:
+        needed = MAX_DAILY_BRIEF_ITEMS - len(top_priorities)
         top_priorities.extend([item.get("description", "") for item in actions if item.get("priority") == "medium"][:needed])
 
     next_action = "Review top high-priority action and approve immediate owner assignments."
@@ -163,7 +167,7 @@ def build_founder_daily_brief(result: dict) -> dict:
             {"project": "Marketing", "status": "🟡"},
         ],
         "agent_status": status_counts,
-        "agent_status_requiring_attention": attention_status[:5],
+        "agent_status_requiring_attention": attention_status[:MAX_ATTENTION_STATUS_ITEMS],
         "alerts": alerts,
         "today_top_3": today_top_three_priorities,
         "today_top_three_priorities": today_top_three_priorities,
