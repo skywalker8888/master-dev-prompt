@@ -4,15 +4,19 @@
 - **Document ID:** ZOS-STD-0001
 - **Title:** ZOS Agent Operating Standard
 - **Version:** 1.0.0
-- **Status:** Draft
-- **Approval Status:** Pending Founder Approval
+- **Status:** Active
+- **Approval Status:** Approved
 - **Owner:** Founder
 - **Approver:** Founder
-- **Effective Date:** Pending Founder Approval
+- **Effective Date:** 2026-07-13
 - **Supersedes:** None
-- **Dependencies:** ZOS-CON-0001; ZOS-STD-0009 (security controls authority when active)
+- **Dependencies:** ZOS-CON-0001
+- **Planned Normative Reference:** ZOS-STD-0009 — Security Standard
 - **Related Authority:** ZOS-CON-0001 v1.0.0
-- **Change Log:** 1.0.0 — Canonical operating-standard draft completed for Founder review.
+- **Change Log:** 1.0.0 — Initial Agent Operating Standard approved by Founder.
+- **Ratified By:** Founder
+- **Ratification Date:** 2026-07-13
+- **Ratification Status:** Approved
 
 ## 2) Constitutional Compliance Statement
 “This document shall not redefine governance established by ZOS-CON-0001. Where conflict exists, ZOS-CON-0001 prevails.”
