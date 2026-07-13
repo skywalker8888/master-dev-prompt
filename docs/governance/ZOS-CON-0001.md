@@ -103,7 +103,7 @@ Valid transitions:
 
 ## 9) Normative References
 The following subordinate standards are normative targets for governance rollout. Sequencing and timeline are defined by Founder-prioritized governance planning.
-- ZOS-STD-0001 — Agent Operating Standard (planned)
+- ZOS-STD-0001 — Agent Operating Standard (draft)
 - ZOS-STD-0002 — Evidence Standard (planned)
 - ZOS-STD-0003 — Decision Standard (planned)
 - ZOS-STD-0004 — Documentation Standard (planned)
@@ -115,8 +115,20 @@ The following subordinate standards are normative targets for governance rollout
 - ZOS-STD-0010 — Quality Assurance Standard (planned)
 
 ## 10) Ratification
-This document is ratified and active as the highest authority inside ZOS.
+This document is ratified and active as the highest authority inside ZOS. Version 1.0.0 is the frozen constitutional baseline until amended through constitutional change control.
 
 - **Ratified By:** Founder
 - **Ratification Date:** 2026-07-13
 - **Ratification Status:** Approved
+
+## 11) Release Discipline
+Governance documents must use semantic versioning with the following interpretation:
+- **Major version:** Constitutional or breaking governance changes.
+- **Minor version:** New sections or capabilities.
+- **Patch version:** Clarifications, wording, or typo fixes.
+
+Versioning examples:
+- **1.0.0:** Initial ratified baseline
+- **1.1.0:** Added Command Bar requirement
+- **1.1.1:** Clarified evidence wording
+- **2.0.0:** Governance model changed

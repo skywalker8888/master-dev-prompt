@@ -3,7 +3,7 @@
 ## 1) Document Metadata
 - **Document ID:** ZOS-STD-0001
 - **Title:** ZOS Agent Operating Standard
-- **Version:** 0.1.0
+- **Version:** 1.0.0
 - **Status:** Draft
 - **Approval Status:** Pending Founder Approval
 - **Owner:** Founder
@@ -11,7 +11,7 @@
 - **Effective Date:** Pending Founder Approval
 - **Supersedes:** None
 - **Dependencies:** ZOS-CON-0001
-- **Change Log:** 0.1.0 — Initial draft created following constitutional ratification.
+- **Change Log:** 1.0.0 — Initial draft baseline created under ratified constitution.
 
 ## 2) Constitutional Compliance Statement
 “This document shall not redefine governance established by ZOS-CON-0001. Where conflict exists, ZOS-CON-0001 prevails.”
@@ -28,3 +28,6 @@ This standard will contain:
 - Continuous Improvement Gate
 - Failure Protocol
 - Compliance Checklist
+
+## 4) Implementation Note
+Implementation Note: This standard defines required behavior. Individual AI prompts, schemas, workflows, APIs, and user interfaces are implementation artifacts and may evolve independently provided they remain compliant with this standard and ZOS-CON-0001.
