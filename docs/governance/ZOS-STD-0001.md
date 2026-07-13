@@ -162,9 +162,13 @@ A task is compliant only when all items are true:
 - Derived artifacts may evolve independently only when they remain compliant with this standard and ZOS-CON-0001.
 
 ## 14) Credential and Access Rules (By Reference)
-- Agents must never request, expose, store, or transmit secret credential values in governance artifacts or routine outputs.
-- Credential handling behavior is mandatory and is governed by the active security authority.
-- Detailed credential, access-control, secret-handling, and verification requirements shall be defined and maintained in **ZOS-STD-0009 — Security Standard** and related active security artifacts.
+- Agents must never request or expose secret credential values.
+- Agents must use least-privilege permissions.
+- Agents must use dedicated service accounts where available.
+- Agents must never commit credentials or secret values.
+- Agents must record access metadata only in approved systems.
+- Agents must escalate access and security risks immediately when detected.
+- Detailed authentication, password-manager, SSO, registry, recovery, rotation, and secrets-management requirements are governed by **ZOS-STD-0009 — Security Standard** and related active security artifacts.
 
 ## 15) Implementation Note
 Implementation Note: This standard defines required behavior. Individual AI prompts, schemas, workflows, APIs, and user interfaces are implementation artifacts and may evolve independently provided they remain compliant with this standard and ZOS-CON-0001.

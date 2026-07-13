@@ -26,6 +26,7 @@ The top-level governance hierarchy is:
 4. **ZOS-SOP** (Procedures)
 5. Implementation and execution artifacts:
    - **ZOS-SPEC** (Technical Specifications)
+   - **ZOS-TEST** (Test Specifications)
    - **ZOS-ARCH** (Architecture Documents)
    - **ZOS-ADR** (Architecture Decision Records)
    - **ZOS-PLAN** (Project Plans)
@@ -63,6 +64,7 @@ Every ZOS document must belong to exactly one class:
 - **POL** Policy
 - **SOP** Procedure
 - **SPEC** Technical Specification
+- **TEST** Test Specification
 - **ARCH** Architecture
 - **ADR** Architecture Decision Record
 - **PLAN** Project Plan
