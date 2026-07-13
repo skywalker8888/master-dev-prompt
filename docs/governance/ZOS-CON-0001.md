@@ -24,7 +24,14 @@ The top-level governance hierarchy is:
 2. **ZOS-STD** (Standards)
 3. **ZOS-POL** (Policies)
 4. **ZOS-SOP** (Procedures)
-5. **ZOS-SPEC / ZOS-ARCH / ZOS-ADR / ZOS-PLAN / ZOS-TASK / ZOS-TEST / ZOS-REP** (implementation and execution artifacts)
+5. Implementation and execution artifacts:
+   - **ZOS-SPEC** (Technical Specifications)
+   - **ZOS-ARCH** (Architecture Documents)
+   - **ZOS-ADR** (Architecture Decision Records)
+   - **ZOS-PLAN** (Project Plans)
+   - **ZOS-TASK** (Work Items)
+   - **ZOS-TEST** (Test Specifications)
+   - **ZOS-REP** (Reports)
 
 Lower levels must not conflict with higher levels. If conflict occurs, the higher-level document governs.
 
@@ -44,9 +51,11 @@ If conflict cannot be resolved with available documents, escalate for Founder de
 1. The **human-readable canonical document** is the source of truth for each governance artifact.
 2. Prompts, YAML schemas, JSON schemas, command-bar configurations, APIs, and agent configurations are implementation artifacts derived from canonical human-readable governance documents.
 3. Derived artifacts must reference the canonical source document ID and version.
-4. A governance document is not active unless it has: **Document ID, Version, Owner, Approval Status, and Change Log**.
-5. Document IDs are unique, permanent, and must never be reused; superseded or retired documents retain their original IDs in archived state.
-6. No document may claim authority outside its class or precedence level.
+4. Minimum reference format for derived artifacts: `source_document_id`, `source_version`, and `source_location` (URL/path/identifier) in metadata header or equivalent manifest.
+5. A governance document is not active unless it has: **Document ID, Version, Owner, Approval Status, and Change Log**.
+6. Document IDs are unique, permanent, and must never be reused; superseded or retired documents retain their original IDs in archived state.
+7. A document class change (for example POL to STD) requires a new document ID in the target class with explicit supersession linkage.
+8. No document may claim authority outside its class or precedence level.
 
 ## 6) Mandatory Document Classification
 Every ZOS document must belong to exactly one class:
@@ -67,21 +76,28 @@ Every ZOS document must belong to exactly one class:
 3. Superseded constitutional versions remain archived and referenceable for audit.
 4. No subordinate document may modify constitutional requirements.
 5. Amendment process:
-   - Proposal
-   - Review
-   - Founder Approval
-   - Version Increment
-   - Effective Date
-   - Change Log
-   - Archive Previous Version
+   - **Proposal:** Submit amendment scope, rationale, and impacted documents.
+   - **Review:** Validate consistency with higher-order governance and existing standards.
+   - **Founder Approval:** Obtain explicit Founder authorization before activation.
+   - **Version Increment:** Apply semantic version update for the amended document.
+   - **Effective Date:** Set the activation date for the approved revision.
+   - **Change Log:** Record what changed, why, and compatibility impact.
+   - **Archive Previous Version:** Preserve prior version as immutable historical record.
 
 ## 8) Lifecycle Statuses
-- Draft
-- Under Review
-- Approved
-- Active
-- Superseded
-- Archived
+- **Draft:** Initial authoring state; not approved for enforcement.
+- **Under Review:** Submitted for governance review and decision.
+- **Approved:** Formally approved; awaiting effective date if applicable.
+- **Active:** In-force version for operational use.
+- **Superseded:** Replaced by a newer approved version.
+- **Archived:** Retained for record/audit; not in force.
+
+Valid transitions:
+- Draft → Under Review
+- Under Review → Approved | Draft
+- Approved → Active
+- Active → Superseded | Archived
+- Superseded → Archived
 
 ## 9) Normative References
 The following subordinate standards are normative targets for governance rollout. Sequencing and timeline are defined by Founder-prioritized governance planning.
