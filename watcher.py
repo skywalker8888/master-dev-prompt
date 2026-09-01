@@ -32,7 +32,7 @@ _SCRIPT = Path(__file__).parent / "run_master_dev.sh"
 
 def should_process(txt_path: Path, outputs_dir: Path) -> bool:
     """Return True if txt_path is a .txt without a corresponding .json output."""
-    if txt_path.suffix != ".txt":
+    if txt_path.suffix.lower() != ".txt":
         return False
     output = get_output_path(txt_path, outputs_dir)
     return not output.exists()
@@ -45,6 +45,7 @@ def get_output_path(txt_path: Path, outputs_dir: Path) -> Path:
 
 def process_transcript(txt_path: Path, outputs_dir: Path, script: Path = _SCRIPT) -> None:
     """Run run_master_dev.sh on txt_path, saving output to outputs_dir."""
+    outputs_dir.mkdir(parents=True, exist_ok=True)
     output_json = get_output_path(txt_path, outputs_dir)
     log_file = outputs_dir / (txt_path.stem + ".log")
 
@@ -92,7 +93,9 @@ def main() -> None:
         log.error("Transcripts directory not found: %s", transcripts_dir)
         sys.exit(1)
 
-    outputs_dir.mkdir(parents=True, exist_ok=True)
+    for existing_txt in sorted(transcripts_dir.iterdir()):
+        if existing_txt.is_file() and should_process(existing_txt, outputs_dir):
+            process_transcript(existing_txt, outputs_dir)
 
     log.info("Watching %s for new transcripts...", transcripts_dir)
     log.info("Outputs will be written to %s", outputs_dir)
