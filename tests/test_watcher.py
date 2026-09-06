@@ -59,3 +59,56 @@ def test_process_transcript_calls_script(tmp_path):
         args = mock_run.call_args[0][0]
         assert str(script) in args
         assert str(txt) in args
+
+
+def test_process_transcript_writes_output_and_log(tmp_path):
+    from watcher import process_transcript
+
+    txt = tmp_path / "meeting.txt"
+    txt.write_text("transcript content")
+    outputs_dir = tmp_path / "outputs"
+    outputs_dir.mkdir()
+    script = tmp_path / "run_master_dev.sh"
+
+    with patch("subprocess.run") as mock_run:
+        mock_run.return_value = MagicMock(
+            returncode=0, stdout='{"status": "ok"}', stderr="model warning"
+        )
+        process_transcript(txt, outputs_dir, script)
+
+    assert (outputs_dir / "meeting.json").read_text() == '{"status": "ok"}'
+    assert (outputs_dir / "meeting.log").read_text() == "model warning"
+
+
+def test_process_transcript_logs_failure_without_output(tmp_path):
+    from watcher import process_transcript
+
+    txt = tmp_path / "meeting.txt"
+    txt.write_text("transcript content")
+    outputs_dir = tmp_path / "outputs"
+    outputs_dir.mkdir()
+    script = tmp_path / "run_master_dev.sh"
+
+    with patch("subprocess.run") as mock_run:
+        mock_run.return_value = MagicMock(returncode=1, stdout="", stderr="backend failed")
+        process_transcript(txt, outputs_dir, script)
+
+    assert not (outputs_dir / "meeting.json").exists()
+    assert (outputs_dir / "meeting.log").read_text() == "backend failed"
+
+
+def test_handler_skips_duplicate_transcript(tmp_path):
+    from watcher import TranscriptHandler
+
+    txt = tmp_path / "meeting.txt"
+    txt.write_text("transcript content")
+    outputs_dir = tmp_path / "outputs"
+    outputs_dir.mkdir()
+    (outputs_dir / "meeting.json").write_text("{}")
+
+    with patch("watcher.process_transcript") as mock_process:
+        TranscriptHandler(outputs_dir).on_created(
+            type("Event", (), {"is_directory": False, "src_path": str(txt)})()
+        )
+
+    mock_process.assert_not_called()

@@ -198,3 +198,22 @@ python3 watcher.py --transcripts ./my-transcripts --outputs ./my-outputs
 ```
 
 Stop with `Ctrl+C`. Files already processed (with a matching `.json` in `outputs/`) are skipped automatically.
+
+### Obsidian workflow
+
+Keep the Obsidian vault separate from this repository and use two vault folders:
+
+```text
+<vault>/Meeting Transcripts/   # drop .txt transcripts here
+<vault>/Meeting Outputs/       # generated .json and .log files appear here
+```
+
+Start the watcher with the absolute paths for your vault:
+
+```bash
+python3 watcher.py \
+  --transcripts "/path/to/vault/Meeting Transcripts" \
+  --outputs "/path/to/vault/Meeting Outputs"
+```
+
+The watcher observes only the transcript folder, processes `.txt` files once, and leaves non-text Obsidian notes untouched. The folder names and vault location are configurable; no Obsidian path is hard-coded into the project.
