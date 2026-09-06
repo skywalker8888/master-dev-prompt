@@ -1,13 +1,13 @@
 # GitHub Notifications & Open PRs Summary
 
-**Last Updated:** June 30, 2026  
+**Last Updated:** September 6, 2026
 **Unread Notifications Link:** https://github.com/notifications?query=is%3Aunread
 
 ---
 
 ## 📊 Overview
 
-- **Total Open PRs:** 13
+- **Total Open PRs:** 11
 - **Unread Notifications:** [Check here](https://github.com/notifications?query=is%3Aunread)
 - **Quick Access:** [All Notifications](https://github.com/notifications)
 
@@ -19,29 +19,27 @@
 
 | # | Repository | Title | Age | Status |
 |---|-----------|-------|-----|--------|
-| [#6](https://github.com/skywalker8888/master-dev-prompt/pull/6) | master-dev-prompt | Set up dev environment + document offline watcher/PATH caveats | 5 days | Open |
-| [#4](https://github.com/skywalker8888/cosmos-dataset-search/pull/4) | cosmos-dataset-search | Set up dev environment + add AGENTS.md (Cursor Cloud) | 7 days | Open |
+| [#10](https://github.com/skywalker8888/master-dev-prompt/pull/10) | master-dev-prompt | Harden transcript watcher startup and file handling | 1 day | Open (Draft) |
 
 ### Medium (7-30 Days)
 
 | # | Repository | Title | Age | Status |
 |---|-----------|-------|-----|--------|
-| [#5](https://github.com/skywalker8888/animated-octo-computing-machine/pull/5) | animated-octo-computing-machine | Document empty-repo Cloud Agent development environment | 24 days | Open |
-| [#4](https://github.com/skywalker8888/animated-octo-computing-machine/pull/4) | animated-octo-computing-machine | Document Cloud Agent dev environment for empty scaffold repo | 29 days | Open |
-| [#3](https://github.com/skywalker8888/animated-octo-computing-machine/pull/3) | animated-octo-computing-machine | Add AGENTS.md for Cursor Cloud environment setup | 32 days | Open |
-| [#2](https://github.com/skywalker8888/animated-octo-computing-machine/pull/2) | animated-octo-computing-machine | Add AGENTS.md for Cursor Cloud environment setup | 34 days | Open |
+| [#5](https://github.com/skywalker8888/cosmos-dataset-search/pull/5) | cosmos-dataset-search | Fix CI workflow and clarify application naming | 22 days | Open |
 
 ### Older (30+ Days)
 
 | # | Repository | Title | Age | Status |
 |---|-----------|-------|-----|--------|
-| [#3](https://github.com/skywalker8888/cosmos-dataset-search/pull/3) | cosmos-dataset-search | Fix two reproducible API error-handling crashes | April 23 | Open |
-| [#2](https://github.com/skywalker8888/cosmos-dataset-search/pull/2) | cosmos-dataset-search | Stabilize flaky aesthetic Triton unit test setup | April 23 | Open |
-| [#1](https://github.com/skywalker8888/cosmos-dataset-search/pull/1) | cosmos-dataset-search | Add Cloud agent starter skill for CDS run/test workflows | April 23 | Open |
-| [#3](https://github.com/skywalker8888/master-dev-prompt/pull/3) | master-dev-prompt | docs: update AGENTS.md with cloud runbook instructions | April 23 | Open |
-| [#52](https://github.com/skywalker8831/master-dev-prompt/pull/52) | master-dev-prompt | Add weekly ops review template markdown file | March 23 | Open |
-| [#1](https://github.com/skywalker8831/effective-umbrella/pull/1) | effective-umbrella | Add developer documentation and GitHub templates | March 15 | Open |
-| [#1](https://github.com/skywalker8888/fix-/pull/1) | fix- | Add documentation and GitHub templates for project setup | March 15 | Open |
+| [#6](https://github.com/skywalker8888/master-dev-prompt/pull/6) | master-dev-prompt | Set up dev environment + document offline watcher/PATH caveats | 73 days | Open |
+| [#4](https://github.com/skywalker8888/cosmos-dataset-search/pull/4) | cosmos-dataset-search | Set up dev environment + add AGENTS.md (Cursor Cloud) | 76 days | Open (Draft) |
+| [#3](https://github.com/skywalker8888/cosmos-dataset-search/pull/3) | cosmos-dataset-search | Fix two reproducible API error-handling crashes | 136 days | Open (Draft) |
+| [#2](https://github.com/skywalker8888/cosmos-dataset-search/pull/2) | cosmos-dataset-search | Stabilize flaky aesthetic Triton unit test setup | 136 days | Open (Draft) |
+| [#1](https://github.com/skywalker8888/cosmos-dataset-search/pull/1) | cosmos-dataset-search | Add Cloud agent starter skill for CDS run/test workflows | 136 days | Open (Draft) |
+| [#60](https://github.com/skywalker8831/master-dev-prompt/pull/60) | master-dev-prompt | docs: add Architecture & Code Organization section to README | 113 days | Open (Draft) |
+| [#57](https://github.com/skywalker8831/master-dev-prompt/pull/57) | master-dev-prompt | Improve test coverage from 81% to 99% across all modules | 160 days | Open |
+| [#52](https://github.com/skywalker8831/master-dev-prompt/pull/52) | master-dev-prompt | Add weekly ops review template markdown file | 167 days | Open |
+| [#54](https://github.com/skywalker8831/master-dev-prompt/pull/54) | master-dev-prompt | Add AI collaboration guideline (docs/ai-collaboration.md) | 167 days | Open (Draft) |
 
 ---
 
@@ -85,4 +83,3 @@
 3. Create a new page
 4. Paste this content
 5. Notion will auto-format the tables and links
-
