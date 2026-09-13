@@ -149,6 +149,7 @@ Run the included server for HTTP access and a browser UI:
 
 ```bash
 export ANTHROPIC_API_KEY=sk-...
+export ANTHROPIC_MODEL=claude-sonnet-5   # optional override
 pip install fastapi uvicorn anthropic python-dotenv
 uvicorn app:app --reload
 ```
@@ -171,7 +172,7 @@ with open("master_dev_prompt.txt") as f:
 
 def run_master_dev(transcript: str) -> dict:
     response = client.messages.create(
-        model="claude-sonnet-4-6",
+        model="claude-sonnet-5",
         max_tokens=8096,
         system=system_prompt,
         messages=[{"role": "user", "content": f'{transcript}\n"""'}]
