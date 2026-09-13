@@ -171,7 +171,7 @@ with open("master_dev_prompt.txt") as f:
 
 def run_master_dev(transcript: str) -> dict:
     response = client.messages.create(
-        model="claude-sonnet-4-6",
+        model="claude-sonnet-5",
         max_tokens=8096,
         system=system_prompt,
         messages=[{"role": "user", "content": f'{transcript}\n"""'}]

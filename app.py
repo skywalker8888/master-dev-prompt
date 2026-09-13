@@ -34,6 +34,7 @@ def verify_api_key(x_api_key: Annotated[str | None, Header()] = None) -> None:
 
 _PROMPT_PATH = Path(__file__).parent / "master_dev_prompt.txt"
 _system_prompt: str | None = None
+_DEFAULT_MODEL = "claude-sonnet-5"
 
 
 def _get_system_prompt() -> str:
@@ -43,6 +44,10 @@ def _get_system_prompt() -> str:
             raise RuntimeError("master_dev_prompt.txt not found")
         _system_prompt = _PROMPT_PATH.read_text()
     return _system_prompt
+
+
+def _get_model_name() -> str:
+    return os.getenv("ANTHROPIC_MODEL", _DEFAULT_MODEL)
 
 
 class ProcessRequest(BaseModel):
@@ -67,7 +72,7 @@ def process_transcript(
     user_message = f'{req.transcript}\n"""'
 
     message = client.messages.create(
-        model="claude-sonnet-4-6",
+        model=_get_model_name(),
         max_tokens=8096,
         system=system,
         messages=[{"role": "user", "content": user_message}],
@@ -101,7 +106,7 @@ def process_transcript_stream(
     def generate():
         accumulated = ""
         with client.messages.stream(
-            model="claude-sonnet-4-6",
+            model=_get_model_name(),
             max_tokens=8096,
             system=system,
             messages=[{"role": "user", "content": user_message}],
