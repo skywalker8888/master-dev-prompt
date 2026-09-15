@@ -5,7 +5,7 @@ VALIDATOR := ./validate_output.py
 OUTPUT_DIR ?= ./outputs
 FILE ?=
 
-.PHONY: help validate-file validate-outputs test-validator ci
+.PHONY: help validate-file validate-outputs test-validator test ci
 
 help:
 	@echo "Targets:"
@@ -35,5 +35,8 @@ validate-outputs:
 test-validator:
 	@$(PYTHON) $(VALIDATOR) ./ci/fixtures/valid_output.json
 
-ci: test-validator validate-outputs
+test:
+	@$(PYTHON) -m pytest tests/ -v
+
+ci: test-validator validate-outputs test
 	@echo "CI checks passed."
