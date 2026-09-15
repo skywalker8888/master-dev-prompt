@@ -162,7 +162,10 @@ Optional: set `SERVER_API_KEY` to require an `X-Api-Key` header on all requests.
 ### Minimal SDK snippet
 
 ```python
-import anthropic, json
+import json
+import os
+
+import anthropic
 
 client = anthropic.Anthropic(api_key=YOUR_KEY)
 
@@ -171,7 +174,7 @@ with open("master_dev_prompt.txt") as f:
 
 def run_master_dev(transcript: str) -> dict:
     response = client.messages.create(
-        model="claude-sonnet-4-6",
+        model=os.getenv("ANTHROPIC_MODEL", "claude-sonnet-5"),
         max_tokens=8096,
         system=system_prompt,
         messages=[{"role": "user", "content": f'{transcript}\n"""'}]
