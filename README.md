@@ -198,3 +198,35 @@ python3 watcher.py --transcripts ./my-transcripts --outputs ./my-outputs
 ```
 
 Stop with `Ctrl+C`. Files already processed (with a matching `.json` in `outputs/`) are skipped automatically.
+
+### Obsidian workflow
+
+You can point the watcher and batch runner at an Obsidian vault without changing code:
+
+```bash
+export OBSIDIAN_VAULT_PATH="$HOME/Documents/ObsidianVault"
+export OBSIDIAN_TRANSCRIPTS_SUBDIR="Inbox/Transcripts"
+export OBSIDIAN_OUTPUTS_SUBDIR="Inbox/Structured"
+python3 watcher.py
+```
+
+This makes the watcher read from:
+- `$OBSIDIAN_VAULT_PATH/$OBSIDIAN_TRANSCRIPTS_SUBDIR`
+
+and write to:
+- `$OBSIDIAN_VAULT_PATH/$OBSIDIAN_OUTPUTS_SUBDIR`
+
+If you prefer full explicit paths, any agent can use these shared env vars instead:
+
+```bash
+export MASTER_DEV_TRANSCRIPTS_DIR="/absolute/path/to/transcripts"
+export MASTER_DEV_OUTPUTS_DIR="/absolute/path/to/outputs"
+python3 watcher.py
+./batch_run_master_dev.sh
+```
+
+Path precedence is:
+1. CLI flags / script arguments
+2. `MASTER_DEV_TRANSCRIPTS_DIR` and `MASTER_DEV_OUTPUTS_DIR`
+3. `OBSIDIAN_VAULT_PATH` with optional `OBSIDIAN_TRANSCRIPTS_SUBDIR` / `OBSIDIAN_OUTPUTS_SUBDIR`
+4. Repository-local `transcripts/` and `outputs/`

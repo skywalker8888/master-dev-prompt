@@ -42,6 +42,56 @@ def test_get_output_path(tmp_path):
     assert result == outputs_dir / "my-meeting.json"
 
 
+def test_resolve_io_dirs_defaults(tmp_path, monkeypatch):
+    from watcher import resolve_io_dirs
+    monkeypatch.chdir(tmp_path)
+    monkeypatch.delenv("MASTER_DEV_TRANSCRIPTS_DIR", raising=False)
+    monkeypatch.delenv("MASTER_DEV_OUTPUTS_DIR", raising=False)
+    monkeypatch.delenv("OBSIDIAN_VAULT_PATH", raising=False)
+    monkeypatch.delenv("OBSIDIAN_TRANSCRIPTS_SUBDIR", raising=False)
+    monkeypatch.delenv("OBSIDIAN_OUTPUTS_SUBDIR", raising=False)
+
+    transcripts_dir, outputs_dir = resolve_io_dirs()
+
+    assert transcripts_dir == (tmp_path / "transcripts").resolve()
+    assert outputs_dir == (tmp_path / "outputs").resolve()
+
+
+def test_resolve_io_dirs_prefers_explicit_args(tmp_path, monkeypatch):
+    from watcher import resolve_io_dirs
+    monkeypatch.setenv("MASTER_DEV_TRANSCRIPTS_DIR", str(tmp_path / "env-transcripts"))
+    monkeypatch.setenv("MASTER_DEV_OUTPUTS_DIR", str(tmp_path / "env-outputs"))
+
+    transcripts_dir, outputs_dir = resolve_io_dirs("./cli-transcripts", "./cli-outputs")
+
+    assert transcripts_dir == Path("./cli-transcripts").resolve()
+    assert outputs_dir == Path("./cli-outputs").resolve()
+
+
+def test_resolve_io_dirs_uses_master_dev_env_over_vault(tmp_path, monkeypatch):
+    from watcher import resolve_io_dirs
+    monkeypatch.setenv("MASTER_DEV_TRANSCRIPTS_DIR", str(tmp_path / "env-transcripts"))
+    monkeypatch.setenv("MASTER_DEV_OUTPUTS_DIR", str(tmp_path / "env-outputs"))
+    monkeypatch.setenv("OBSIDIAN_VAULT_PATH", str(tmp_path / "vault"))
+
+    transcripts_dir, outputs_dir = resolve_io_dirs()
+
+    assert transcripts_dir == (tmp_path / "env-transcripts").resolve()
+    assert outputs_dir == (tmp_path / "env-outputs").resolve()
+
+
+def test_resolve_io_dirs_uses_obsidian_vault_subdirs(tmp_path, monkeypatch):
+    from watcher import resolve_io_dirs
+    monkeypatch.setenv("OBSIDIAN_VAULT_PATH", str(tmp_path / "vault"))
+    monkeypatch.setenv("OBSIDIAN_TRANSCRIPTS_SUBDIR", "Meetings/Inbox")
+    monkeypatch.setenv("OBSIDIAN_OUTPUTS_SUBDIR", "Meetings/Structured")
+
+    transcripts_dir, outputs_dir = resolve_io_dirs()
+
+    assert transcripts_dir == (tmp_path / "vault" / "Meetings" / "Inbox").resolve()
+    assert outputs_dir == (tmp_path / "vault" / "Meetings" / "Structured").resolve()
+
+
 def test_process_transcript_calls_script(tmp_path):
     from watcher import process_transcript
     txt = tmp_path / "meeting.txt"

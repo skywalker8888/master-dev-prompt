@@ -12,6 +12,7 @@ Usage:
 
 import argparse
 import logging
+import os
 import subprocess
 import sys
 import time
@@ -28,6 +29,8 @@ logging.basicConfig(
 log = logging.getLogger(__name__)
 
 _SCRIPT = Path(__file__).parent / "run_master_dev.sh"
+_DEFAULT_TRANSCRIPTS_SUBDIR = "transcripts"
+_DEFAULT_OUTPUTS_SUBDIR = "outputs"
 
 
 def should_process(txt_path: Path, outputs_dir: Path) -> bool:
@@ -41,6 +44,42 @@ def should_process(txt_path: Path, outputs_dir: Path) -> bool:
 def get_output_path(txt_path: Path, outputs_dir: Path) -> Path:
     """Return the expected .json output path for a given .txt transcript."""
     return outputs_dir / (txt_path.stem + ".json")
+
+
+def resolve_io_dirs(
+    transcripts_arg: str | None = None,
+    outputs_arg: str | None = None,
+) -> tuple[Path, Path]:
+    """Resolve transcript/output directories from args, env vars, or defaults."""
+    vault_path = os.environ.get("OBSIDIAN_VAULT_PATH", "").strip()
+    transcripts_subdir = os.environ.get(
+        "OBSIDIAN_TRANSCRIPTS_SUBDIR",
+        _DEFAULT_TRANSCRIPTS_SUBDIR,
+    ).strip() or _DEFAULT_TRANSCRIPTS_SUBDIR
+    outputs_subdir = os.environ.get(
+        "OBSIDIAN_OUTPUTS_SUBDIR",
+        _DEFAULT_OUTPUTS_SUBDIR,
+    ).strip() or _DEFAULT_OUTPUTS_SUBDIR
+
+    transcripts_dir = (
+        Path(transcripts_arg)
+        if transcripts_arg
+        else Path(os.environ["MASTER_DEV_TRANSCRIPTS_DIR"].strip())
+        if os.environ.get("MASTER_DEV_TRANSCRIPTS_DIR", "").strip()
+        else Path(vault_path) / transcripts_subdir
+        if vault_path
+        else Path(_DEFAULT_TRANSCRIPTS_SUBDIR)
+    )
+    outputs_dir = (
+        Path(outputs_arg)
+        if outputs_arg
+        else Path(os.environ["MASTER_DEV_OUTPUTS_DIR"].strip())
+        if os.environ.get("MASTER_DEV_OUTPUTS_DIR", "").strip()
+        else Path(vault_path) / outputs_subdir
+        if vault_path
+        else Path(_DEFAULT_OUTPUTS_SUBDIR)
+    )
+    return transcripts_dir.resolve(), outputs_dir.resolve()
 
 
 def process_transcript(txt_path: Path, outputs_dir: Path, script: Path = _SCRIPT) -> None:
@@ -81,12 +120,17 @@ class TranscriptHandler(FileSystemEventHandler):
 
 def main() -> None:
     parser = argparse.ArgumentParser(description="Autopilot watcher for transcript processing")
-    parser.add_argument("--transcripts", default="transcripts", help="Directory to watch")
-    parser.add_argument("--outputs", default="outputs", help="Directory for output JSON files")
+    parser.add_argument(
+        "--transcripts",
+        help="Directory to watch (overrides MASTER_DEV_TRANSCRIPTS_DIR/OBSIDIAN_VAULT_PATH)",
+    )
+    parser.add_argument(
+        "--outputs",
+        help="Directory for output JSON files (overrides MASTER_DEV_OUTPUTS_DIR/OBSIDIAN_VAULT_PATH)",
+    )
     args = parser.parse_args()
 
-    transcripts_dir = Path(args.transcripts).resolve()
-    outputs_dir = Path(args.outputs).resolve()
+    transcripts_dir, outputs_dir = resolve_io_dirs(args.transcripts, args.outputs)
 
     if not transcripts_dir.exists():
         log.error("Transcripts directory not found: %s", transcripts_dir)
