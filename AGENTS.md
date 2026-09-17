@@ -18,7 +18,7 @@ This is a Python 3.11+ single-service monolithic app (FastAPI + CLI scripts) for
 ### Caveats
 
 - Use `python3 -m pytest` rather than bare `pytest`; the latter may not be on PATH.
-- The FastAPI server (`POST /process`) requires `ANTHROPIC_API_KEY` env var for live mode. Without it, the server starts but returns HTTP 500 on process requests. Mock mode (`--mock` flag or `MOCK_OUTPUT=1` env var) works without any API key for CLI scripts.
+- The FastAPI server (`POST /process`) uses live Anthropic when `ANTHROPIC_API_KEY` is set. If the key is missing, or `MOCK_OUTPUT=1` is set, `/process` and `/process/stream` return `outputs/sample.json` instead of HTTP 500 (so Vercel works before the key is configured). `GET /health` includes `"mock": true|false`. CLI mock mode (`--mock` / `MOCK_OUTPUT=1`) is unchanged.
 - Shell scripts (`run_master_dev.sh`, `batch_run_master_dev.sh`) must be `chmod +x` before first use.
 - The web UI is a single static HTML file at `static/index.html`, served by FastAPI at `GET /`. It posts to `/process/stream`, so the browser UI also needs `ANTHROPIC_API_KEY` to produce results; without it the server returns HTTP 500.
 - Health check: `GET /health` returns `{"status":"ok","prompt_loaded":true}`.

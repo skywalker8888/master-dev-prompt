@@ -19,6 +19,9 @@ jobs:
         with:
           python-version: '3.x'
 
+      - name: Install dependencies
+        run: python3 -m pip install -r requirements.txt
+
       - name: Make scripts executable
         run: |
           chmod +x ./run_master_dev.sh || true
@@ -29,3 +32,4 @@ jobs:
           ./batch_run_master_dev.sh ./transcripts ./outputs --mock
           # Validate any produced json files; fail the job if invalid
           python3 validate_output.py outputs/sample_transcript.json
+          python3 -m pytest tests/ -v
