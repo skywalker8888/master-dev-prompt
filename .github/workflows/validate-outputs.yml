@@ -21,6 +21,9 @@ jobs:
         with:
           python-version: "3.11"
 
+      - name: Install dependencies
+        run: python3 -m pip install -r requirements.txt
+
       - name: Run validation CI checks
         shell: bash
         run: |

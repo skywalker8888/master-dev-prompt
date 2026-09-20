@@ -315,7 +315,7 @@
     <div>
         <div class="logo">SIGNAL <em>· MASTER DEV PROMPT</em></div>
     </div>
-    <div class="badge">buildagentic · McDis Framework</div>
+    <div class="badge" id="mode-badge">buildagentic · McDis Framework</div>
 </header>
 
 <main>
@@ -344,6 +344,20 @@
 </main>
 
 <script>
+async function showMode() {
+    try {
+        const res = await fetch('/health');
+        const body = await res.json();
+        const badge = document.getElementById('mode-badge');
+        if (badge && body.mock) {
+            badge.textContent = 'MOCK · set ANTHROPIC_API_KEY for live';
+        }
+    } catch (e) {
+        // Health is optional; PROCESS still reports errors.
+    }
+}
+showMode();
+
 async function run() {
     const tx = document.getElementById('tx').value.trim();
     if (!tx) return;

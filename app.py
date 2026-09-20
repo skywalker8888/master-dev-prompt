@@ -24,6 +24,41 @@ load_dotenv()
 
 app = FastAPI(title="Master Dev Prompt API")
 
+_ROOT = Path(__file__).parent
+_PROMPT_PATH = _ROOT / "master_dev_prompt.txt"
+_MOCK_OUTPUT_PATH = _ROOT / "outputs" / "sample.json"
+_system_prompt: str | None = None
+
+
+def _env_flag(name: str) -> bool:
+    return os.getenv(name, "").strip().lower() in {"1", "true", "yes"}
+
+
+def _use_mock_output() -> bool:
+    """Use canned JSON when explicitly requested, or when no API key is configured.
+
+    Vercel production currently has no ANTHROPIC_API_KEY, so the public UI
+    would otherwise 500 on every PROCESS click.
+    """
+    if _env_flag("MOCK_OUTPUT"):
+        return True
+    return not os.getenv("ANTHROPIC_API_KEY", "").strip()
+
+
+def _load_mock_result() -> dict:
+    if not _MOCK_OUTPUT_PATH.exists():
+        raise HTTPException(
+            status_code=500,
+            detail="mock output requested but outputs/sample.json not found",
+        )
+    try:
+        return json.loads(_MOCK_OUTPUT_PATH.read_text())
+    except json.JSONDecodeError as e:
+        raise HTTPException(
+            status_code=500,
+            detail=f"outputs/sample.json is invalid JSON: {e}",
+        ) from e
+
 
 def verify_api_key(x_api_key: Annotated[str | None, Header()] = None) -> None:
     server_key = os.getenv("SERVER_API_KEY")
@@ -31,9 +66,6 @@ def verify_api_key(x_api_key: Annotated[str | None, Header()] = None) -> None:
         return  # no key configured → open (local dev)
     if not x_api_key or not hmac.compare_digest(x_api_key, server_key):
         raise HTTPException(status_code=401, detail="Unauthorized")
-
-_PROMPT_PATH = Path(__file__).parent / "master_dev_prompt.txt"
-_system_prompt: str | None = None
 
 
 def _get_system_prompt() -> str:
@@ -58,6 +90,9 @@ def process_transcript(
     req: ProcessRequest,
     _: Annotated[None, Depends(verify_api_key)],
 ) -> ProcessResponse:
+    if _use_mock_output():
+        return ProcessResponse(result=_load_mock_result())
+
     api_key = os.getenv("ANTHROPIC_API_KEY")
     if not api_key:
         raise HTTPException(status_code=500, detail="ANTHROPIC_API_KEY not set")
@@ -90,6 +125,16 @@ def process_transcript_stream(
     req: ProcessRequest,
     _: Annotated[None, Depends(verify_api_key)],
 ) -> StreamingResponse:
+    if _use_mock_output():
+        result = _load_mock_result()
+        raw = json.dumps(result)
+
+        def generate_mock():
+            yield f"data: {json.dumps({'chunk': raw, 'mock': True})}\n\n"
+            yield f"data: {json.dumps({'done': True, 'result': result, 'mock': True})}\n\n"
+
+        return StreamingResponse(generate_mock(), media_type="text/event-stream")
+
     api_key = os.getenv("ANTHROPIC_API_KEY")
     if not api_key:
         raise HTTPException(status_code=500, detail="ANTHROPIC_API_KEY not set")
@@ -121,10 +166,14 @@ def process_transcript_stream(
 
 @app.get("/", response_class=HTMLResponse)
 def ui() -> HTMLResponse:
-    html = Path(__file__).parent / "static" / "index.html"
+    html = _ROOT / "static" / "index.html"
     return HTMLResponse(html.read_text() if html.exists() else "<h1>UI not found</h1>", status_code=200 if html.exists() else 404)
 
 
 @app.get("/health")
 def health() -> dict:
-    return {"status": "ok", "prompt_loaded": _PROMPT_PATH.exists()}
+    return {
+        "status": "ok",
+        "prompt_loaded": _PROMPT_PATH.exists(),
+        "mock": _use_mock_output(),
+    }
