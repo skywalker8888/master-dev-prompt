@@ -20,7 +20,8 @@ This is a Python 3.11+ single-service monolithic app (FastAPI + CLI scripts) for
 - Use `python3 -m pytest` rather than bare `pytest`; the latter may not be on PATH.
 - The FastAPI server (`POST /process`) uses live Anthropic when `ANTHROPIC_API_KEY` is set. If the key is missing, or `MOCK_OUTPUT=1` is set, `/process` and `/process/stream` return `outputs/sample.json` instead of HTTP 500 (so Vercel works before the key is configured). `GET /health` includes `"mock": true|false`. CLI mock mode (`--mock` / `MOCK_OUTPUT=1`) is unchanged.
 - Shell scripts (`run_master_dev.sh`, `batch_run_master_dev.sh`) must be `chmod +x` before first use.
-- The web UI is a single static HTML file at `static/index.html`, served by FastAPI at `GET /`. It posts to `/process/stream`, so the browser UI also needs `ANTHROPIC_API_KEY` to produce results; without it the server returns HTTP 500.
-- Health check: `GET /health` returns `{"status":"ok","prompt_loaded":true}`.
+- The web UI is a single static HTML file at `static/index.html`, served by FastAPI at `GET /`. It posts to `/process/stream`. Without `ANTHROPIC_API_KEY` (or with `MOCK_OUTPUT=1`) PROCESS still returns `outputs/sample.json` and the header badge shows mock mode.
+- Health check: `GET /health` returns `{"status":"ok","prompt_loaded":true,"mock":true|false}`.
+- Cloud Agent start launches uvicorn on `0.0.0.0:8000` if `/health` is not already up, then returns. Re-running start is a no-op when the server is healthy.
 - The autopilot watcher (`watcher.py`) shells out to `run_master_dev.sh` without `--mock`, so to test it offline (no model CLI / no API key) run it with the mock env var: `MOCK_OUTPUT=1 python3 watcher.py`. Drop a `.txt` into `transcripts/` and a validated `.json` appears in `outputs/` (existing `.txt` files whose `.json` already exists are skipped).
 - `pip install --user` puts console scripts (`uvicorn`, `pytest`) in `~/.local/bin`, which is not on PATH; this is why the `python3 -m ...` invocations above are used.
