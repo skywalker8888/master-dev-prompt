@@ -77,6 +77,10 @@ def _get_system_prompt() -> str:
     return _system_prompt
 
 
+def _get_anthropic_model() -> str:
+    return os.getenv("ANTHROPIC_MODEL", "claude-sonnet-5")
+
+
 class ProcessRequest(BaseModel):
     transcript: str
 
@@ -99,10 +103,11 @@ def process_transcript(
 
     client = anthropic.Anthropic(api_key=api_key)
     system = _get_system_prompt()
+    model = _get_anthropic_model()
     user_message = f'{req.transcript}\n"""'
 
     message = client.messages.create(
-        model="claude-sonnet-4-6",
+        model=model,
         max_tokens=8096,
         system=system,
         messages=[{"role": "user", "content": user_message}],
@@ -141,12 +146,13 @@ def process_transcript_stream(
 
     client = anthropic.Anthropic(api_key=api_key)
     system = _get_system_prompt()
+    model = _get_anthropic_model()
     user_message = f'{req.transcript}\n"""'
 
     def generate():
         accumulated = ""
         with client.messages.stream(
-            model="claude-sonnet-4-6",
+            model=model,
             max_tokens=8096,
             system=system,
             messages=[{"role": "user", "content": user_message}],
