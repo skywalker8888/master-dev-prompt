@@ -5,13 +5,14 @@ VALIDATOR := ./validate_output.py
 OUTPUT_DIR ?= ./outputs
 FILE ?=
 
-.PHONY: help validate-file validate-outputs test-validator test ci
+.PHONY: help validate-file validate-outputs test-validator test check-tracked ci
 
 help:
 	@echo "Targets:"
 	@echo "  make validate-file FILE=path/to/output.json"
 	@echo "  make validate-outputs [OUTPUT_DIR=./outputs]"
 	@echo "  make test-validator"
+	@echo "  make check-tracked"
 	@echo "  make ci"
 
 validate-file:
@@ -38,5 +39,12 @@ test-validator:
 test:
 	@$(PYTHON) -m pytest tests/ -v
 
-ci: test-validator validate-outputs test
+# Fails if any tracked file matches .gitignore (single source of truth).
+check-tracked:
+	@bad=$$(git ls-files --cached --ignored --exclude-standard); \
+	if [[ -n "$$bad" ]]; then \
+		echo "Tracked files match .gitignore; untrack with: git rm --cached <file>"; echo "$$bad"; exit 1; \
+	fi
+
+ci: check-tracked test-validator validate-outputs test
 	@echo "CI checks passed."
