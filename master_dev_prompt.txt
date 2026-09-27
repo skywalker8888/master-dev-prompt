@@ -10,12 +10,19 @@ All required array fields must contain at least one object:
 - implementation_plan.milestones
 - implementation_plan.tech_tasks
 - code_suggestions.snippets
+- agent_task_report.qualification_checks
+- agent_task_report.task_slides
+- agent_task_report.master_checklist
+- agent_task_report.review_checkpoints
+- agent_task_report.escalation_rules
 If transcript evidence is missing, still include one object with empty strings, empty depends_on, and valid enum defaults.
 Use these enum values exactly:
 - priority: low | medium | high
 - type: feature | bug | infra | research | decision | follow-up
 - area: backend | frontend | infra | data | devops | testing
 - complexity: S | M | L
+- qualification result: pass | fail
+- slide status: Done | In Progress | Blocked
 
 Output this exact shape:
 
@@ -71,6 +78,52 @@ Output this exact shape:
         "purpose": "",
         "code": "",
         "notes": ""
+      }
+    ]
+  },
+  "agent_task_report": {
+    "urgency_workflow": {
+      "assignment_mode": "",
+      "reporting_interval": ""
+    },
+    "qualification_checks": [
+      {
+        "agent_name": "",
+        "qualification_test": "",
+        "result": "pass|fail",
+        "notes": ""
+      }
+    ],
+    "task_slides": [
+      {
+        "agent_name": "",
+        "task_title": "",
+        "task_description": "",
+        "status": "Done|In Progress|Blocked",
+        "evidence_output": "",
+        "timestamp": ""
+      }
+    ],
+    "master_checklist": [
+      {
+        "agent_name": "",
+        "task_title": "",
+        "status": "Done|In Progress|Blocked",
+        "checked": false
+      }
+    ],
+    "review_checkpoints": [
+      {
+        "checkpoint": "",
+        "focus": "",
+        "owner": ""
+      }
+    ],
+    "escalation_rules": [
+      {
+        "trigger": "",
+        "action": "",
+        "reassignment_owner": ""
       }
     ]
   }

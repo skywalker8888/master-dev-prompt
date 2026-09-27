@@ -65,7 +65,7 @@ python3 validate_output.py output.json
 
 Validation is strict:
 - required object keys must match exactly
-- `actions.items`, `implementation_plan.milestones`, `implementation_plan.tech_tasks`, and `code_suggestions.snippets` must each contain at least one item
+- `actions.items`, `implementation_plan.milestones`, `implementation_plan.tech_tasks`, `code_suggestions.snippets`, `agent_task_report.qualification_checks`, `agent_task_report.task_slides`, `agent_task_report.master_checklist`, `agent_task_report.review_checkpoints`, and `agent_task_report.escalation_rules` must each contain at least one item
 - enum fields must use the exact allowed values
 
 Or with Make:
@@ -139,6 +139,7 @@ Codex alternative:
 | `actions` | tasks with owner, priority (low/medium/high), type |
 | `implementation_plan` | milestones with ETA + risks, tech tasks with complexity (S/M/L) |
 | `code_suggestions` | real runnable snippets in detected language, stack context |
+| `agent_task_report` | urgent assignment/reporting workflow, qualification checks, one-task-per-slide entries, master checklist, review checkpoints, escalation rules |
 
 ---
 
@@ -161,7 +162,10 @@ Optional: set `SERVER_API_KEY` to require an `X-Api-Key` header on all requests.
 ### Minimal SDK snippet
 
 ```python
-import anthropic, json
+import json
+import os
+
+import anthropic
 
 client = anthropic.Anthropic(api_key=YOUR_KEY)
 
@@ -170,7 +174,7 @@ with open("master_dev_prompt.txt") as f:
 
 def run_master_dev(transcript: str) -> dict:
     response = client.messages.create(
-        model="claude-sonnet-4-6",
+        model=os.getenv("ANTHROPIC_MODEL", "claude-sonnet-5"),
         max_tokens=8096,
         system=system_prompt,
         messages=[{"role": "user", "content": f'{transcript}\n"""'}]

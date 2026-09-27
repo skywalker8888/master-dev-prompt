@@ -53,5 +53,51 @@
 				"notes": "Not used by validator; included for completeness."
 			}
 		]
+	},
+	"agent_task_report": {
+		"urgency_workflow": {
+			"assignment_mode": "Owners assigned immediately at kickoff",
+			"reporting_interval": "Update every 4 hours until closure"
+		},
+		"qualification_checks": [
+			{
+				"agent_name": "dev",
+				"qualification_test": "Run validator against fixture and sample output",
+				"result": "pass",
+				"notes": "Validator checks succeeded before assignment."
+			}
+		],
+		"task_slides": [
+			{
+				"agent_name": "dev",
+				"task_title": "Create minimal sample JSON for validator",
+				"task_description": "Generate and validate strict-schema output used by local and CI checks.",
+				"status": "Done",
+				"evidence_output": "outputs/sample_transcript.json passes validate_output.py",
+				"timestamp": "2026-05-18T12:00:00Z"
+			}
+		],
+		"master_checklist": [
+			{
+				"agent_name": "dev",
+				"task_title": "Create minimal sample JSON for validator",
+				"status": "Done",
+				"checked": true
+			}
+		],
+		"review_checkpoints": [
+			{
+				"checkpoint": "Daily standup review",
+				"focus": "Ownership, progress, and missing records",
+				"owner": "project_lead"
+			}
+		],
+		"escalation_rules": [
+			{
+				"trigger": "Task remains Blocked for more than one reporting interval",
+				"action": "Escalate immediately and reassign the task",
+				"reassignment_owner": "backup_dev"
+			}
+		]
 	}
 }

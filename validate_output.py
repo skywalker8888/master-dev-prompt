@@ -11,6 +11,8 @@ PRIORITY = {"low", "medium", "high"}
 ACTION_TYPE = {"feature", "bug", "infra", "research", "decision", "follow-up"}
 AREA = {"backend", "frontend", "infra", "data", "devops", "testing"}
 COMPLEXITY = {"S", "M", "L"}
+QUALIFICATION_RESULT = {"pass", "fail"}
+SLIDE_STATUS = {"Done", "In Progress", "Blocked"}
 
 
 def fail(msg: str) -> None:
@@ -39,6 +41,11 @@ def require_keys(obj: Dict[str, Any], keys: List[str], path: str) -> None:
     for key in keys:
         if key not in obj:
             fail(f"{path}.{key} is missing")
+
+
+def require_bool(value: Any, path: str) -> None:
+    if not isinstance(value, bool):
+        fail(f"{path} must be a boolean")
 
 
 def require_exact_keys(obj: Dict[str, Any], keys: List[str], path: str) -> None:
@@ -83,7 +90,14 @@ def main() -> int:
         fail(f"invalid JSON at line {exc.lineno}, column {exc.colno}: {exc.msg}")
 
     root = require_dict(data, "$")
-    root_keys = ["design_doc", "pm_summary", "actions", "implementation_plan", "code_suggestions"]
+    root_keys = [
+        "design_doc",
+        "pm_summary",
+        "actions",
+        "implementation_plan",
+        "code_suggestions",
+        "agent_task_report",
+    ]
     require_keys(
         root,
         root_keys,
@@ -182,6 +196,97 @@ def main() -> int:
         require_str(entry["purpose"], f"{snippet_path}.purpose")
         require_str(entry["code"], f"{snippet_path}.code")
         require_str(entry["notes"], f"{snippet_path}.notes")
+
+    agent_task_report = require_dict(root["agent_task_report"], "$.agent_task_report")
+    agent_task_report_keys = [
+        "urgency_workflow",
+        "qualification_checks",
+        "task_slides",
+        "master_checklist",
+        "review_checkpoints",
+        "escalation_rules",
+    ]
+    require_keys(agent_task_report, agent_task_report_keys, "$.agent_task_report")
+    require_exact_keys(agent_task_report, agent_task_report_keys, "$.agent_task_report")
+
+    urgency_workflow = require_dict(agent_task_report["urgency_workflow"], "$.agent_task_report.urgency_workflow")
+    urgency_workflow_keys = ["assignment_mode", "reporting_interval"]
+    require_keys(urgency_workflow, urgency_workflow_keys, "$.agent_task_report.urgency_workflow")
+    require_exact_keys(urgency_workflow, urgency_workflow_keys, "$.agent_task_report.urgency_workflow")
+    require_str(urgency_workflow["assignment_mode"], "$.agent_task_report.urgency_workflow.assignment_mode")
+    require_str(urgency_workflow["reporting_interval"], "$.agent_task_report.urgency_workflow.reporting_interval")
+
+    qualification_checks = require_non_empty_list(
+        agent_task_report["qualification_checks"],
+        "$.agent_task_report.qualification_checks",
+    )
+    for idx, check in enumerate(qualification_checks):
+        check_path = f"$.agent_task_report.qualification_checks[{idx}]"
+        entry = require_dict(check, check_path)
+        qualification_keys = ["agent_name", "qualification_test", "result", "notes"]
+        require_keys(entry, qualification_keys, check_path)
+        require_exact_keys(entry, qualification_keys, check_path)
+        require_str(entry["agent_name"], f"{check_path}.agent_name")
+        require_str(entry["qualification_test"], f"{check_path}.qualification_test")
+        require_enum(entry["result"], QUALIFICATION_RESULT, f"{check_path}.result")
+        require_str(entry["notes"], f"{check_path}.notes")
+
+    task_slides = require_non_empty_list(agent_task_report["task_slides"], "$.agent_task_report.task_slides")
+    for idx, slide in enumerate(task_slides):
+        slide_path = f"$.agent_task_report.task_slides[{idx}]"
+        entry = require_dict(slide, slide_path)
+        slide_keys = ["agent_name", "task_title", "task_description", "status", "evidence_output", "timestamp"]
+        require_keys(entry, slide_keys, slide_path)
+        require_exact_keys(entry, slide_keys, slide_path)
+        require_str(entry["agent_name"], f"{slide_path}.agent_name")
+        require_str(entry["task_title"], f"{slide_path}.task_title")
+        require_str(entry["task_description"], f"{slide_path}.task_description")
+        require_enum(entry["status"], SLIDE_STATUS, f"{slide_path}.status")
+        require_str(entry["evidence_output"], f"{slide_path}.evidence_output")
+        require_str(entry["timestamp"], f"{slide_path}.timestamp")
+
+    master_checklist = require_non_empty_list(
+        agent_task_report["master_checklist"],
+        "$.agent_task_report.master_checklist",
+    )
+    for idx, item in enumerate(master_checklist):
+        item_path = f"$.agent_task_report.master_checklist[{idx}]"
+        entry = require_dict(item, item_path)
+        checklist_keys = ["agent_name", "task_title", "status", "checked"]
+        require_keys(entry, checklist_keys, item_path)
+        require_exact_keys(entry, checklist_keys, item_path)
+        require_str(entry["agent_name"], f"{item_path}.agent_name")
+        require_str(entry["task_title"], f"{item_path}.task_title")
+        require_enum(entry["status"], SLIDE_STATUS, f"{item_path}.status")
+        require_bool(entry["checked"], f"{item_path}.checked")
+
+    review_checkpoints = require_non_empty_list(
+        agent_task_report["review_checkpoints"],
+        "$.agent_task_report.review_checkpoints",
+    )
+    for idx, checkpoint in enumerate(review_checkpoints):
+        checkpoint_path = f"$.agent_task_report.review_checkpoints[{idx}]"
+        entry = require_dict(checkpoint, checkpoint_path)
+        checkpoint_keys = ["checkpoint", "focus", "owner"]
+        require_keys(entry, checkpoint_keys, checkpoint_path)
+        require_exact_keys(entry, checkpoint_keys, checkpoint_path)
+        require_str(entry["checkpoint"], f"{checkpoint_path}.checkpoint")
+        require_str(entry["focus"], f"{checkpoint_path}.focus")
+        require_str(entry["owner"], f"{checkpoint_path}.owner")
+
+    escalation_rules = require_non_empty_list(
+        agent_task_report["escalation_rules"],
+        "$.agent_task_report.escalation_rules",
+    )
+    for idx, rule in enumerate(escalation_rules):
+        rule_path = f"$.agent_task_report.escalation_rules[{idx}]"
+        entry = require_dict(rule, rule_path)
+        escalation_keys = ["trigger", "action", "reassignment_owner"]
+        require_keys(entry, escalation_keys, rule_path)
+        require_exact_keys(entry, escalation_keys, rule_path)
+        require_str(entry["trigger"], f"{rule_path}.trigger")
+        require_str(entry["action"], f"{rule_path}.action")
+        require_str(entry["reassignment_owner"], f"{rule_path}.reassignment_owner")
 
     print(f"VALID: {json_path}")
     return 0
