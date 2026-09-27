@@ -1,0 +1,19 @@
+# Python
+__pycache__/
+*.py[cod]
+.pytest_cache/
+.venv/
+venv/
+
+# Secrets
+.env
+.env.*
+!.env.example
+
+# Run artifacts (fixture JSON in outputs/ stays tracked)
+outputs/*.log
+outputs/*.tmp.json
+
+# Tooling / OS
+.vercel/
+.DS_Store
