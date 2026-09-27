@@ -5,13 +5,14 @@ VALIDATOR := ./validate_output.py
 OUTPUT_DIR ?= ./outputs
 FILE ?=
 
-.PHONY: help validate-file validate-outputs test-validator test ci
+.PHONY: help validate-file validate-outputs test-validator test check-tracked ci
 
 help:
 	@echo "Targets:"
 	@echo "  make validate-file FILE=path/to/output.json"
 	@echo "  make validate-outputs [OUTPUT_DIR=./outputs]"
 	@echo "  make test-validator"
+	@echo "  make check-tracked"
 	@echo "  make ci"
 
 validate-file:
@@ -38,5 +39,11 @@ test-validator:
 test:
 	@$(PYTHON) -m pytest tests/ -v
 
-ci: test-validator validate-outputs test
+check-tracked:
+	@bad=$$(git ls-files | grep -E '(__pycache__/|\.py[cod]$$|^outputs/.*\.log$$)' || true); \
+	if [[ -n "$$bad" ]]; then \
+		echo "Generated files are tracked by git (see .gitignore):"; echo "$$bad"; exit 1; \
+	fi
+
+ci: check-tracked test-validator validate-outputs test
 	@echo "CI checks passed."
