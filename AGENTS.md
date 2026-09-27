@@ -37,9 +37,9 @@
 - `POST /process` and `POST /process/stream` use live Anthropic when `ANTHROPIC_API_KEY` is set. If the key is missing, or `MOCK_OUTPUT=1` is set, they return `outputs/sample.json` instead of HTTP 500 (so Vercel works before the key is configured).
 - Model defaults to `claude-sonnet-5`; override with `ANTHROPIC_MODEL`.
 - Health endpoint: `GET /health` returns `{"status":"ok","prompt_loaded":true,"mock":true|false}`.
-- If `SERVER_API_KEY` is set, all API routes require a matching `X-Api-Key` header.
+- If `SERVER_API_KEY` is set, `POST /process` and `POST /process/stream` require a matching `X-Api-Key` header. `GET /` (UI) and `GET /health` stay public.
 - UI is a single static file (`static/index.html`) served at `GET /`. It posts to `/process/stream`; in mock mode the header badge shows mock mode.
-- CLI mock mode (`--mock` second arg or `MOCK_OUTPUT=1`) emits `outputs/sample.json` and needs no model CLI/API credentials.
+- CLI mock mode (`--mock` second arg or `MOCK_OUTPUT=1`) prints `outputs/sample.json` to stdout and needs no model CLI/API credentials.
 - `run_master_dev.sh` auto-selects backend CLI: prefers `claude`, falls back to `codex exec`.
 - The watcher shells out to `run_master_dev.sh` without `--mock`, so test it offline with `MOCK_OUTPUT=1`. Drop a `.txt` into `transcripts/` and a validated `.json` appears in `outputs/` (`.txt` files whose `.json` already exists are skipped).
 - Cloud Agent start launches uvicorn on `0.0.0.0:8000` if `/health` is not already up, then returns. Re-running start is a no-op when the server is healthy.
