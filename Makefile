@@ -39,10 +39,11 @@ test-validator:
 test:
 	@$(PYTHON) -m pytest tests/ -v
 
+# Fails if any tracked file matches .gitignore (single source of truth).
 check-tracked:
-	@bad=$$(git ls-files | grep -E '(__pycache__/|\.py[cod]$$|^outputs/.*\.log$$)' || true); \
+	@bad=$$(git ls-files --cached --ignored --exclude-standard); \
 	if [[ -n "$$bad" ]]; then \
-		echo "Generated files are tracked by git (see .gitignore):"; echo "$$bad"; exit 1; \
+		echo "Tracked files match .gitignore; untrack with: git rm --cached <file>"; echo "$$bad"; exit 1; \
 	fi
 
 ci: check-tracked test-validator validate-outputs test
