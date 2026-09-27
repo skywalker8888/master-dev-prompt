@@ -14,6 +14,8 @@ jobs:
     runs-on: ubuntu-latest
     permissions:
       contents: read
+    env:
+      COPILOT_AGENT_MODEL: auto
     steps:
-      - name: Force auto model selection for Copilot cloud agent
-        run: echo "COPILOT_AGENT_MODEL=auto" >> "$GITHUB_ENV"
+      - name: Confirm Copilot model selection mode
+        run: echo "COPILOT_AGENT_MODEL=$COPILOT_AGENT_MODEL"
