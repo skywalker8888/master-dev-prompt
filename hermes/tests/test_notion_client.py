@@ -125,6 +125,37 @@ def test_get_status_returns_none_when_status_missing():
         assert client.get_status("page123") is None
 
 
+def test_query_tasks_retries_after_rate_limit(monkeypatch):
+    client = _client()
+    limited = MagicMock()
+    limited.status_code = 429
+    limited.headers = {"Retry-After": "0"}
+    ok = _mock_response([{"id": "abc"}])
+    ok.status_code = 200
+
+    monkeypatch.setattr("notion_client.time.sleep", lambda *_: None)
+    with patch("notion_client.requests.post", side_effect=[limited, ok]) as mock_post:
+        result = client.query_tasks("pending")
+
+        assert result == [{"id": "abc"}]
+        assert mock_post.call_count == 2
+
+
+def test_query_tasks_raises_after_repeated_rate_limits(monkeypatch):
+    client = _client()
+    limited = MagicMock()
+    limited.status_code = 429
+    limited.headers = {}
+    limited.raise_for_status.side_effect = Exception("429 Too Many Requests")
+
+    monkeypatch.setattr("notion_client.time.sleep", lambda *_: None)
+    with patch("notion_client.requests.post", return_value=limited) as mock_post:
+        with pytest.raises(Exception, match="429"):
+            client.query_tasks("pending")
+
+        assert mock_post.call_count == 4  # initial attempt + MAX_RETRIES retries
+
+
 def test_update_status_patches_correct_page():
     client = _client()
     response = MagicMock()

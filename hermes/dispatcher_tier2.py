@@ -31,17 +31,23 @@ def dispatch_next_task(client: NotionClient) -> None:
         log("No pending tasks found")
         return
 
-    task = min(pending, key=lambda t: t["cost"])
-    log(f"Found task: '{task['name']}' (Type: {task['type']}, Cost: {task['cost']})")
+    pending.sort(key=lambda t: t["cost"])
 
-    # Re-check status: someone may have edited this task in Notion between
-    # the query above and now.
-    if client.get_status(task["id"]) != "pending":
-        log(f"Skipped '{task['name']}': status changed before dispatch")
+    for task in pending:
+        log(f"Found task: '{task['name']}' (Type: {task['type']}, Cost: {task['cost']})")
+
+        # Re-check status: someone may have edited this task in Notion between
+        # the query above and now. If it's stale, try the next cheapest
+        # pending task instead of waiting for the next 5-minute poll.
+        if client.get_status(task["id"]) != "pending":
+            log(f"Skipped '{task['name']}': status changed before dispatch")
+            continue
+
+        client.update_status(task["id"], "running")
+        log(f"Task '{task['name']}' moved to running")
         return
 
-    client.update_status(task["id"], "running")
-    log(f"Task '{task['name']}' moved to running")
+    log("All pending tasks changed status before dispatch")
 
 
 def main() -> None:

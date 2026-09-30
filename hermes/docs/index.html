@@ -117,7 +117,8 @@ Status       Select: pending, running, completed, failed
 Type         Select: automation, research, report, content
 Input Data   Text
 Output       Text
-Created At   Date</div>
+Created At   Created time (Notion's automatic property, not a plain Date field)
+Completed At Date, set to "now" when Status becomes completed</div>
 
     <h3>Dispatcher Button (Tier 1, FIFO)</h3>
     <div class="code-block">Button Name: "Start Next Task"
@@ -140,7 +141,8 @@ Trigger:
   Type is automation
 
 Action:
-  Set Status to completed</div>
+  Set Status to completed
+  Set Completed At to now</div>
 
     <p>Full step-by-step instructions live in <code>README.md</code> in this directory.</p>
   </section>

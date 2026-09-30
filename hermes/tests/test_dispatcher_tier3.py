@@ -1,5 +1,6 @@
 import hashlib
 import hmac
+import stat
 import sys
 from pathlib import Path
 from unittest.mock import MagicMock
@@ -12,11 +13,14 @@ import dispatcher_tier3 as tier3  # noqa: E402
 
 
 @pytest.fixture(autouse=True)
-def reset_globals():
+def reset_globals(tmp_path):
     tier3.client = None
     tier3.max_parallel_tasks = 3
     tier3.webhook_secret = None
     tier3.notion_webhook_secret = None
+    # Redirect the verification-token file out of the repo working directory
+    # so tests don't leave (or race on) a real dotfile on disk.
+    tier3.VERIFICATION_TOKEN_PATH = str(tmp_path / "notion_verification_token")
     yield
 
 
@@ -118,8 +122,20 @@ def test_main_raises_without_any_webhook_secret(monkeypatch):
     monkeypatch.setattr(tier3, "NotionClient", MagicMock())
     monkeypatch.delenv("WEBHOOK_SECRET", raising=False)
     monkeypatch.delenv("NOTION_WEBHOOK_SECRET", raising=False)
+    monkeypatch.delenv("MAX_PARALLEL_TASKS", raising=False)
 
     with pytest.raises(RuntimeError):
+        tier3.main()
+
+
+def test_main_raises_when_max_parallel_tasks_exceeds_page_size(monkeypatch):
+    monkeypatch.setattr(tier3, "load_dotenv", lambda: None)
+    monkeypatch.setattr(tier3, "require_env", lambda *names: {"NOTION_TOKEN": "x", "DATABASE_ID": "y"})
+    monkeypatch.setattr(tier3, "NotionClient", MagicMock())
+    monkeypatch.setenv("WEBHOOK_SECRET", "expected-secret")
+    monkeypatch.setenv("MAX_PARALLEL_TASKS", str(tier3.MAX_PAGE_SIZE + 1))
+
+    with pytest.raises(RuntimeError, match="MAX_PARALLEL_TASKS"):
         tier3.main()
 
 
@@ -176,6 +192,16 @@ def test_webhook_verification_handshake_does_not_log_token(capsys):
         test_client.post("/webhook", json={"verification_token": "abc123"})
 
     assert "abc123" not in capsys.readouterr().out
+
+
+def test_webhook_verification_handshake_writes_token_to_restricted_file():
+    tier3.notion_webhook_secret = "some-secret"
+    with tier3.app.test_client() as test_client:
+        test_client.post("/webhook", json={"verification_token": "abc123"})
+
+    path = Path(tier3.VERIFICATION_TOKEN_PATH)
+    assert path.read_text() == "abc123"
+    assert stat.S_IMODE(path.stat().st_mode) == 0o600
 
 
 def test_webhook_rejects_non_dict_json_payload():

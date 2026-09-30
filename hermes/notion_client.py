@@ -1,12 +1,41 @@
 """Thin wrapper around the Notion API calls shared by the Tier 2 and Tier 3 dispatchers."""
 
 import os
+import time
 from datetime import datetime
 
 import requests
 
 NOTION_VERSION = "2022-06-28"
 MAX_PAGE_SIZE = 100
+MAX_RETRIES = 3
+
+
+def _request_with_retry(request_fn, url: str, **kwargs) -> requests.Response:
+    """Calls request_fn(url, **kwargs) (e.g. requests.post), retrying once per
+    Notion's Retry-After on a 429.
+
+    Without this, a rate limit mid-pagination raises immediately and both
+    dispatchers discard every page already collected, restarting from the
+    first cursor next poll - a large enough queue can repeatedly fail before
+    ever selecting a task. Takes the bound requests function (rather than a
+    method name + requests.request) so `patch("notion_client.requests.post",
+    ...)` in tests keeps working unchanged.
+    """
+    kwargs.setdefault("timeout", 30)
+    for attempt in range(MAX_RETRIES + 1):
+        response = request_fn(url, **kwargs)
+        if response.status_code == 429 and attempt < MAX_RETRIES:
+            retry_after = response.headers.get("Retry-After")
+            try:
+                delay = float(retry_after) if retry_after is not None else 2**attempt
+            except (TypeError, ValueError):
+                delay = 2**attempt
+            time.sleep(delay)
+            continue
+        response.raise_for_status()
+        return response
+    return response  # pragma: no cover - loop always returns or raises above
 
 # The live Hermes Tasks database has no Cost formula property, so cost-by-type
 # is computed here in code instead of read from Notion. Keys match the live
@@ -51,8 +80,7 @@ class NotionClient:
         if limit is not None:
             payload["page_size"] = min(limit, MAX_PAGE_SIZE)
 
-        response = requests.post(url, headers=self.headers, json=payload, timeout=30)
-        response.raise_for_status()
+        response = _request_with_retry(requests.post, url, headers=self.headers, json=payload)
         return response.json().get("results", [])
 
     def query_all_tasks(self, status: str) -> list[dict]:
@@ -76,8 +104,7 @@ class NotionClient:
             if cursor:
                 payload["start_cursor"] = cursor
 
-            response = requests.post(url, headers=self.headers, json=payload, timeout=30)
-            response.raise_for_status()
+            response = _request_with_retry(requests.post, url, headers=self.headers, json=payload)
             data = response.json()
 
             results.extend(data.get("results", []))
@@ -91,8 +118,7 @@ class NotionClient:
     def update_status(self, page_id: str, new_status: str) -> None:
         url = f"https://api.notion.com/v1/pages/{page_id}"
         payload = {"properties": {"Status": {"select": {"name": new_status}}}}
-        response = requests.patch(url, headers=self.headers, json=payload, timeout=30)
-        response.raise_for_status()
+        _request_with_retry(requests.patch, url, headers=self.headers, json=payload)
 
     def get_status(self, page_id: str) -> str | None:
         """Fetch a page's current Status value.
@@ -102,8 +128,7 @@ class NotionClient:
         the page in Notion while a dispatch pass is in flight.
         """
         url = f"https://api.notion.com/v1/pages/{page_id}"
-        response = requests.get(url, headers=self.headers, timeout=30)
-        response.raise_for_status()
+        response = _request_with_retry(requests.get, url, headers=self.headers)
         select = response.json().get("properties", {}).get("Status", {}).get("select")
         return select.get("name") if select else None
 

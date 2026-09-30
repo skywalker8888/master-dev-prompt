@@ -64,6 +64,21 @@ def test_dispatch_next_task_skips_if_status_changed_before_dispatch():
     client.update_status.assert_not_called()
 
 
+def test_dispatch_next_task_tries_next_cheapest_after_stale_task():
+    client = MagicMock()
+    client.query_all_tasks.return_value = [
+        _task("stale", "Already handled", task_type="automation"),  # cheapest, but stale
+        _task("cheap2", "Backup task", task_type="research"),
+    ]
+    # The cheapest task's status changed before dispatch; the next-cheapest
+    # pending task should be tried instead of waiting for the next poll.
+    client.get_status.side_effect = ["completed", "pending"]
+
+    dispatch_next_task(client)
+
+    client.update_status.assert_called_once_with("cheap2", "running")
+
+
 def test_main_loop_survives_dispatch_errors(monkeypatch):
     monkeypatch.setenv("NOTION_TOKEN", "secret")
     monkeypatch.setenv("DATABASE_ID", "db123")

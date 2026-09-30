@@ -31,7 +31,7 @@ from datetime import datetime
 from dotenv import load_dotenv
 from flask import Flask, jsonify, request
 
-from notion_client import NotionClient, log, require_env, task_details
+from notion_client import MAX_PAGE_SIZE, NotionClient, log, require_env, task_details
 
 POLL_INTERVAL_SECONDS = 30
 
@@ -40,6 +40,13 @@ client: NotionClient | None = None
 max_parallel_tasks = 3
 webhook_secret: str | None = None
 notion_webhook_secret: str | None = None
+
+# Where the one-time Notion verification_token is written so an operator can
+# retrieve it and paste it into NOTION_WEBHOOK_SECRET. Written with 0600
+# permissions rather than logged, since the same value later doubles as the
+# X-Notion-Signature HMAC key - anyone with log access could otherwise forge
+# signed webhook requests.
+VERIFICATION_TOKEN_PATH = os.getenv("VERIFICATION_TOKEN_PATH", ".notion_verification_token")
 
 # Serializes dispatch_tasks so the webhook thread and the background poll
 # loop can't both read a stale running-task count and jointly exceed
@@ -56,6 +63,9 @@ dispatch_lock = threading.Lock()
 
 
 def running_task_count(limit: int | None = None) -> int:
+    # query_tasks only returns a single Notion page (<= MAX_PAGE_SIZE), so
+    # this undercounts whenever limit exceeds that - main() enforces
+    # max_parallel_tasks <= MAX_PAGE_SIZE so limit never does here.
     return len(client.query_tasks("running", limit=limit))
 
 
@@ -113,11 +123,22 @@ def webhook_handler():
         return jsonify({"status": "bad_request"}), 400
 
     # Notion's one-time subscription verification handshake: no signature is
-    # sent with this request. Accept it, but never log the token itself -
-    # it's the same value used as the NOTION_WEBHOOK_SECRET HMAC key, so
-    # logging it would let anyone with log access forge X-Notion-Signature.
+    # sent with this request. Never log the token itself - it's the same
+    # value used as the NOTION_WEBHOOK_SECRET HMAC key, so logging it would
+    # let anyone with log access forge X-Notion-Signature. Instead write it
+    # to a 0600 local file the operator can read once and then delete.
     if "verification_token" in payload:
-        log("Notion webhook verification handshake received")
+        try:
+            fd = os.open(VERIFICATION_TOKEN_PATH, os.O_WRONLY | os.O_CREAT | os.O_TRUNC, 0o600)
+            with os.fdopen(fd, "w") as f:
+                f.write(str(payload["verification_token"]))
+            log(
+                f"Notion webhook verification handshake received - token written to "
+                f"{VERIFICATION_TOKEN_PATH} (mode 600). Copy it into NOTION_WEBHOOK_SECRET, "
+                "then delete the file."
+            )
+        except OSError as exc:
+            log(f"Notion webhook verification handshake received, but couldn't write the token to disk: {exc}")
         return jsonify({"status": "verified"}), 200
 
     if notion_webhook_secret:
@@ -172,6 +193,13 @@ def main() -> None:
     webhook_port = int(os.getenv("WEBHOOK_PORT", "5000"))
     webhook_secret = os.getenv("WEBHOOK_SECRET")
     notion_webhook_secret = os.getenv("NOTION_WEBHOOK_SECRET")
+
+    if max_parallel_tasks > MAX_PAGE_SIZE:
+        raise RuntimeError(
+            f"MAX_PARALLEL_TASKS ({max_parallel_tasks}) exceeds {MAX_PAGE_SIZE} - "
+            "running_task_count() only pages through a single Notion page and would "
+            "undercount above that, letting the parallel-task cap be exceeded"
+        )
 
     if not webhook_secret and not notion_webhook_secret:
         raise RuntimeError(

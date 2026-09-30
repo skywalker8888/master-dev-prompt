@@ -15,7 +15,11 @@ draft of this doc):
 - `Type` — Select: `automation`, `research`, `report`, `content`
 - `Input Data` — Text
 - `Output` — Text
-- `Created At` — Date
+- `Created At` — **Created time** (Notion's automatic property, not a plain
+  `Date` field — it must self-populate on row creation, or FIFO ordering
+  silently breaks for any task where a human forgot to set it)
+- `Completed At` — Date, set to "now" when `Status` becomes `completed`
+  (see the Tier 1 automation below; needed for the "Done This Week" view)
 
 There is **no `Cost` property in Notion.** The live database has no formula
 to sort by cost, so cheapest-first priority (`automation`=1, `research`=3,
@@ -35,11 +39,12 @@ up Tier 1 as FIFO (oldest pending task first) instead:
    - Edit pages: set `Status` to `running`
 2. Add an automation **Auto-Complete Automation Tasks**:
    - Trigger: `Status is set to running` and `Type is automation`
-   - Action: set `Status` to `completed`
+   - Action: set `Status` to `completed` **and** `Completed At` to "now"
 3. Add views: `📋 Pending Queue` (filter `pending`, sort `Created At` asc),
    `⚡ Running Tasks` (filter `running`), `✅ Done This Week` (filter
-   `completed` + `Created At` within this week), `📊 Pipeline Board` (board
-   grouped by `Status`).
+   `completed` + `Completed At` within this week — not `Created At`, which
+   would miss anything completed later than it was created), `📊 Pipeline
+   Board` (board grouped by `Status`).
 
 Tier 1 is FIFO-only; only Tier 2/3 apply cheapest-first priority.
 
