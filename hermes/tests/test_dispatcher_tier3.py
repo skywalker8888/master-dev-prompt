@@ -92,6 +92,37 @@ def test_dispatch_tasks_skips_task_whose_status_changed_before_dispatch():
     tier3.client.update_status.assert_not_called()
 
 
+def test_dispatch_tasks_fills_slot_from_remaining_pending_after_skip():
+    tier3.client = MagicMock()
+    tier3.max_parallel_tasks = 2
+    tier3.client.query_tasks.return_value = []  # 0 running, 2 slots available
+    tier3.client.query_all_tasks.return_value = [
+        _task("stale", "Already handled", task_type="automation"),  # cheapest, but stale
+        _task("cheap2", "Backup task", task_type="research"),
+        _task("cheap3", "Another backup", task_type="content"),
+    ]
+    # The cheapest task's status changed before dispatch; the two behind it
+    # are still pending and should backfill the freed slot.
+    tier3.client.get_status.side_effect = ["completed", "pending", "pending"]
+
+    dispatched = tier3.dispatch_tasks()
+
+    assert dispatched == 2
+    started_ids = {call.args[0] for call in tier3.client.update_status.call_args_list}
+    assert started_ids == {"cheap2", "cheap3"}
+
+
+def test_main_raises_without_any_webhook_secret(monkeypatch):
+    monkeypatch.setattr(tier3, "load_dotenv", lambda: None)
+    monkeypatch.setattr(tier3, "require_env", lambda *names: {"NOTION_TOKEN": "x", "DATABASE_ID": "y"})
+    monkeypatch.setattr(tier3, "NotionClient", MagicMock())
+    monkeypatch.delenv("WEBHOOK_SECRET", raising=False)
+    monkeypatch.delenv("NOTION_WEBHOOK_SECRET", raising=False)
+
+    with pytest.raises(RuntimeError):
+        tier3.main()
+
+
 def test_verify_notion_signature_accepts_matching_hmac():
     body = b'{"event":"task.updated"}'
     secret = "shhh"
@@ -134,6 +165,24 @@ def test_webhook_accepts_notion_verification_handshake():
 
     assert response.status_code == 200
     assert response.get_json()["status"] == "verified"
+
+
+def test_webhook_verification_handshake_does_not_log_token(capsys):
+    # The verification token doubles as the NOTION_WEBHOOK_SECRET HMAC key,
+    # so it must never end up in logs - anyone reading them could forge
+    # X-Notion-Signature.
+    tier3.notion_webhook_secret = "some-secret"
+    with tier3.app.test_client() as test_client:
+        test_client.post("/webhook", json={"verification_token": "abc123"})
+
+    assert "abc123" not in capsys.readouterr().out
+
+
+def test_webhook_rejects_non_dict_json_payload():
+    with tier3.app.test_client() as test_client:
+        response = test_client.post("/webhook", data="1", content_type="application/json")
+
+    assert response.status_code == 400
 
 
 def test_webhook_rejects_invalid_notion_signature():

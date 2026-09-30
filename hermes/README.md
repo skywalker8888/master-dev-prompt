@@ -71,9 +71,13 @@ of a 30-second background poll as a fallback.
 ```bash
 cd hermes
 pip install -r requirements.txt
-cp .env.example .env   # also set WEBHOOK_PORT and MAX_PARALLEL_TASKS
+cp .env.example .env   # set WEBHOOK_PORT, MAX_PARALLEL_TASKS, and one of the webhook secrets below
 python3 dispatcher_tier3.py
 ```
+
+`WEBHOOK_SECRET` or `NOTION_WEBHOOK_SECRET` is required — the process refuses
+to start without one of them, since an unauthenticated `/webhook` lets anyone
+who can reach it trigger dispatches.
 
 Endpoints:
 - `POST /webhook` — trigger an immediate dispatch pass. Accepts either:
@@ -83,6 +87,12 @@ Endpoints:
     via the `X-Notion-Signature` HMAC header against `NOTION_WEBHOOK_SECRET`
     (see [Notion's webhook docs](https://developers.notion.com/reference/webhooks))
 - `GET /status` — health check (running task count, max parallel, timestamp)
+
+**Run only one dispatcher process per database.** The parallel-task cap and
+the pending→running transition are only serialized within a single process.
+Running Tier 2 and Tier 3 at once, or more than one instance of either,
+against the same database can let two dispatchers both claim the same
+pending task or jointly exceed `MAX_PARALLEL_TASKS`.
 
 ## Running tests
 

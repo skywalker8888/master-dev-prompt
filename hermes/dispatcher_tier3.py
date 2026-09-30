@@ -44,6 +44,14 @@ notion_webhook_secret: str | None = None
 # Serializes dispatch_tasks so the webhook thread and the background poll
 # loop can't both read a stale running-task count and jointly exceed
 # max_parallel_tasks.
+#
+# This lock is process-local only. It does not coordinate across multiple
+# Tier 3 processes, or between Tier 2 and Tier 3 running against the same
+# database - two dispatchers can still both read the same running count and
+# both pass the pending-status check before either writes "running". Run
+# exactly one dispatcher process (one Tier 2 *or* one Tier 3, never both,
+# never more than one of either) per Notion database until this has a real
+# cross-process claim mechanism.
 dispatch_lock = threading.Lock()
 
 
@@ -80,7 +88,10 @@ def dispatch_tasks() -> int:
         pending.sort(key=lambda t: t["cost"])
 
         dispatched = 0
-        for task in pending[:available_slots]:
+        for task in pending:
+            if dispatched == available_slots:
+                break
+
             # Re-check status: someone may have edited this task in Notion
             # between the query above and now.
             if client.get_status(task["id"]) != "pending":
@@ -97,13 +108,16 @@ def dispatch_tasks() -> int:
 
 @app.route("/webhook", methods=["POST"])
 def webhook_handler():
-    payload = request.get_json(silent=True) or {}
+    payload = request.get_json(silent=True)
+    if not isinstance(payload, dict):
+        return jsonify({"status": "bad_request"}), 400
 
     # Notion's one-time subscription verification handshake: no signature is
-    # sent with this request, just log the token so it can be pasted into
-    # the integration dashboard, then accept.
+    # sent with this request. Accept it, but never log the token itself -
+    # it's the same value used as the NOTION_WEBHOOK_SECRET HMAC key, so
+    # logging it would let anyone with log access forge X-Notion-Signature.
     if "verification_token" in payload:
-        log(f"Notion webhook verification token received: {payload['verification_token']}")
+        log("Notion webhook verification handshake received")
         return jsonify({"status": "verified"}), 200
 
     if notion_webhook_secret:
@@ -160,7 +174,10 @@ def main() -> None:
     notion_webhook_secret = os.getenv("NOTION_WEBHOOK_SECRET")
 
     if not webhook_secret and not notion_webhook_secret:
-        log("WARNING: neither WEBHOOK_SECRET nor NOTION_WEBHOOK_SECRET is set - /webhook is unauthenticated")
+        raise RuntimeError(
+            "WEBHOOK_SECRET or NOTION_WEBHOOK_SECRET must be set - refusing to start "
+            "an unauthenticated /webhook that can trigger dispatches for anyone who can reach it"
+        )
 
     log("Hermes Tier 3 dispatcher started")
     log(f"Database: {env['DATABASE_ID']}, max parallel tasks: {max_parallel_tasks}")
