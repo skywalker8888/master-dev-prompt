@@ -177,6 +177,23 @@ def test_dispatch_tasks_cached_count_includes_newly_dispatched_tasks():
     assert tier3.last_known_running_tasks == 3
 
 
+def test_dispatch_tasks_preserves_count_from_tasks_dispatched_before_a_failure():
+    # Task "a" dispatches successfully, then update_status raises for "b" -
+    # the cache must still show the one task that actually started, not
+    # fall back to the pre-dispatch count for a full retry cycle.
+    tier3.client = MagicMock()
+    tier3.max_parallel_tasks = 3
+    tier3.client.get_status.return_value = "pending"
+    tier3.client.query_tasks.return_value = []  # 0 running before this pass
+    tier3.client.query_all_tasks.return_value = [_task("a"), _task("b")]
+    tier3.client.update_status.side_effect = [None, RuntimeError("Notion API error")]
+
+    with pytest.raises(RuntimeError):
+        tier3.dispatch_tasks()
+
+    assert tier3.last_known_running_tasks == 1
+
+
 def test_webhook_rejects_oversized_body():
     tier3.webhook_secret = "expected-secret"
     oversized = b'{"padding": "' + b"x" * (65 * 1024) + b'"}'
@@ -467,3 +484,18 @@ def test_webhook_accepts_matching_shared_secret():
 
     assert response.status_code == 202
     assert tier3.dispatch_requested.is_set()
+
+
+def test_webhook_accepts_bodyless_generic_trigger():
+    # The documented generic-caller path (curl -X POST with just the header)
+    # has no reason to also require a JSON body - it shouldn't be rejected
+    # before the secret is even checked.
+    tier3.webhook_secret = "expected-secret"
+
+    with tier3.app.test_client() as test_client:
+        response = test_client.post(
+            "/webhook",
+            headers={"X-Webhook-Secret": "expected-secret"},
+        )
+
+    assert response.status_code == 202

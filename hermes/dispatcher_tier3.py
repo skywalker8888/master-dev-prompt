@@ -163,17 +163,24 @@ def dispatch_tasks() -> int:
             client.update_status(task["id"], "running")
             log(f"Started '{task['name']}'")
             dispatched += 1
+            # Updated per task, not once at the end: if a later task's
+            # get_status()/update_status() raises, the cache must still
+            # reflect the tasks this pass already dispatched successfully,
+            # not fall back to the pre-dispatch count for a full retry cycle.
+            last_known_running_tasks += 1
 
-        # running_now was captured before this pass's dispatches - without
-        # this, /status would report the pre-dispatch count (e.g. still 0
-        # right after starting 3 tasks) until the next pass corrects it.
-        last_known_running_tasks = running_now + dispatched
         return dispatched
 
 
 @app.route("/webhook", methods=["POST"])
 def webhook_handler():
-    payload = request.get_json(silent=True)
+    # The documented generic-caller path only requires the X-Webhook-Secret
+    # header - a bodyless `curl -X POST` is a reasonable thing to send and
+    # must not be rejected before the secret is even checked. Only reject
+    # when a body was actually sent and it's not a JSON object (Notion
+    # events and the verification handshake are always objects).
+    raw_body = request.get_data()
+    payload = {} if not raw_body else request.get_json(silent=True)
     if not isinstance(payload, dict):
         return jsonify({"status": "bad_request"}), 400
 

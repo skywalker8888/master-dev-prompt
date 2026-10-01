@@ -117,7 +117,8 @@ be between 1 and 100.
 
 Endpoints:
 - `POST /webhook` — trigger an immediate dispatch pass. Accepts either:
-  - a generic caller sending the `X-Webhook-Secret` header (set `WEBHOOK_SECRET`), or
+  - a generic caller sending the `X-Webhook-Secret` header (set `WEBHOOK_SECRET`) —
+    no request body required, e.g. `curl -X POST -H "X-Webhook-Secret: ..." ...`, or
   - a real Notion webhook subscription: Notion's one-time `verification_token`
     handshake, verified via the `X-Notion-Signature` HMAC header against
     `NOTION_WEBHOOK_SECRET` for every event after that
