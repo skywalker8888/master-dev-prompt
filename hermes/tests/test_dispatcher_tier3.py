@@ -20,6 +20,8 @@ def reset_globals(tmp_path):
     tier3.notion_webhook_secret = None
     tier3.webhook_setup_mode = False
     tier3.dispatch_requested.clear()
+    tier3.last_known_running_tasks = 0
+    tier3.last_dispatch_check_at = None
     # Redirect the verification-token file out of the repo working directory
     # so tests don't leave (or race on) a real dotfile on disk.
     tier3.VERIFICATION_TOKEN_PATH = str(tmp_path / "notion_verification_token")
@@ -116,6 +118,52 @@ def test_dispatch_tasks_fills_slot_from_remaining_pending_after_skip():
     assert dispatched == 2
     started_ids = {call.args[0] for call in tier3.client.update_status.call_args_list}
     assert started_ids == {"cheap2", "cheap3"}
+
+
+def test_dispatch_tasks_updates_cached_status_fields():
+    tier3.client = MagicMock()
+    tier3.max_parallel_tasks = 3
+    tier3.client.query_tasks.return_value = [_task(), _task()]  # 2 running
+    tier3.client.query_all_tasks.return_value = []
+
+    tier3.dispatch_tasks()
+
+    assert tier3.last_known_running_tasks == 2
+    assert tier3.last_dispatch_check_at is not None
+
+
+def test_status_endpoint_does_not_call_notion():
+    tier3.client = MagicMock()
+    tier3.max_parallel_tasks = 5
+    tier3.last_known_running_tasks = 2
+    tier3.last_dispatch_check_at = "2026-01-01T00:00:00"
+
+    with tier3.app.test_client() as test_client:
+        response = test_client.get("/status")
+
+    assert response.status_code == 200
+    body = response.get_json()
+    assert body["running_tasks"] == 2
+    assert body["max_parallel"] == 5
+    assert body["last_dispatch_check"] == "2026-01-01T00:00:00"
+    # The whole point: /status is unauthenticated and must never trigger a
+    # live Notion call just because something probed it.
+    tier3.client.query_tasks.assert_not_called()
+    tier3.client.query_all_tasks.assert_not_called()
+
+
+def test_configure_returns_configured_port(monkeypatch):
+    monkeypatch.setattr(tier3, "load_dotenv", lambda: None)
+    monkeypatch.setattr(tier3, "require_env", lambda *names: {"NOTION_TOKEN": "x", "DATABASE_ID": "y"})
+    monkeypatch.setattr(tier3, "NotionClient", MagicMock())
+    monkeypatch.setattr(tier3.threading, "Thread", lambda target, daemon: MagicMock(start=lambda: None))
+    monkeypatch.setenv("WEBHOOK_SECRET", "expected-secret")
+    monkeypatch.setenv("WEBHOOK_PORT", "9999")
+    monkeypatch.delenv("MAX_PARALLEL_TASKS", raising=False)
+
+    port = tier3.configure()
+
+    assert port == 9999
 
 
 def test_main_raises_without_any_webhook_secret(monkeypatch):

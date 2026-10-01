@@ -8,8 +8,12 @@ Setup:
     pip install -r requirements.txt
     cp .env.example .env   # fill in NOTION_TOKEN, DATABASE_ID, WEBHOOK_PORT, MAX_PARALLEL_TASKS
 
-Run:
+Run (local dev - Flask's own server, not for a public deployment):
     python3 dispatcher_tier3.py
+
+Run (production - see wsgi.py and the README for why -w 1 matters here):
+    pip install gunicorn
+    gunicorn -w 1 -b 0.0.0.0:5000 wsgi:app
 
 /webhook accepts two kinds of callers:
   - A generic trigger (curl, an internal script, Zapier, ...) authenticated
@@ -82,6 +86,11 @@ dispatch_lock = threading.Lock()
 # dispatch_lock - they coalesce into whatever the worker's next pass picks up.
 dispatch_requested = threading.Event()
 
+# Updated by dispatch_tasks() each pass, read by /status - see status()
+# below for why /status never calls Notion directly.
+last_known_running_tasks = 0
+last_dispatch_check_at: str | None = None
+
 
 def running_task_count(limit: int | None = None) -> int:
     # query_tasks only returns a single Notion page (<= MAX_PAGE_SIZE), so
@@ -101,11 +110,16 @@ def verify_notion_signature(raw_body: bytes, signature_header: str | None, secre
 
 
 def dispatch_tasks() -> int:
+    global last_known_running_tasks, last_dispatch_check_at
     with dispatch_lock:
         # Bounding the query at max_parallel_tasks is enough to decide
         # whether the cap is reached, without needing to page through every
         # Running task (query_tasks only returns one Notion page).
-        available_slots = max_parallel_tasks - running_task_count(limit=max_parallel_tasks)
+        running_now = running_task_count(limit=max_parallel_tasks)
+        last_known_running_tasks = running_now
+        last_dispatch_check_at = datetime.now().isoformat()
+
+        available_slots = max_parallel_tasks - running_now
         if available_slots <= 0:
             log(f"Max parallel tasks reached ({max_parallel_tasks})")
             return 0
@@ -207,11 +221,19 @@ def webhook_handler():
 
 @app.route("/status", methods=["GET"])
 def status():
+    # Deliberately does not call Notion: /status is unauthenticated and this
+    # process binds publicly for webhooks, so routine health-check probes (or
+    # anyone who can reach it) would otherwise trigger a live Notion query -
+    # including retry sleeps on throttling - on every single request,
+    # competing with the dispatcher's own API usage. running_tasks reflects
+    # the last dispatch_tasks() pass (at most POLL_INTERVAL_SECONDS stale, or
+    # fresher if a webhook just triggered one) rather than a live count.
     return jsonify(
         {
             "status": "running",
-            "running_tasks": running_task_count(),
+            "running_tasks": last_known_running_tasks,
             "max_parallel": max_parallel_tasks,
+            "last_dispatch_check": last_dispatch_check_at,
             "timestamp": datetime.now().isoformat(),
         }
     )
@@ -235,7 +257,14 @@ def continuous_dispatcher() -> None:
             time.sleep(POLL_INTERVAL_SECONDS * 2)
 
 
-def main() -> None:
+def configure() -> int:
+    """Load env vars, validate them, and start the background worker.
+
+    Shared by main() (the `python3 dispatcher_tier3.py` dev convenience path,
+    which also starts Flask's own server) and wsgi.py (the production path,
+    where a real WSGI server imports `app` and calls this once at import
+    time instead). Returns the configured webhook port.
+    """
     global client, max_parallel_tasks, webhook_secret, notion_webhook_secret, webhook_setup_mode
 
     load_dotenv()
@@ -275,7 +304,16 @@ def main() -> None:
 
     threading.Thread(target=continuous_dispatcher, daemon=True).start()
 
-    log(f"Starting webhook server on port {webhook_port}")
+    return webhook_port
+
+
+def main() -> None:
+    # Flask's development server - fine for local testing, not for a public
+    # deployment (no production hardening, single-threaded by default). For
+    # a real deployment, run through wsgi.py under a production WSGI server
+    # instead (see README).
+    webhook_port = configure()
+    log(f"Starting Flask's development server on port {webhook_port} - see wsgi.py for a production deployment")
     app.run(host="0.0.0.0", port=webhook_port)
 
 

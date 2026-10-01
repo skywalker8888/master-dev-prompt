@@ -85,6 +85,22 @@ cp .env.example .env   # set WEBHOOK_PORT, MAX_PARALLEL_TASKS, and one of the we
 python3 dispatcher_tier3.py
 ```
 
+`python3 dispatcher_tier3.py` runs Flask's own development server — fine
+locally, not for a real deployment (no production hardening, single
+connection at a time by default). For anything actually exposed to Notion's
+webhooks, run it through a production WSGI server instead:
+
+```bash
+pip install gunicorn
+gunicorn -w 1 -b 0.0.0.0:5000 wsgi:app
+```
+
+Use exactly one worker (`-w 1`) and never scale this to multiple processes —
+see the comment on `dispatch_lock` in `dispatcher_tier3.py` for why. `wsgi.py`
+runs the same startup validation `main()` does; `WEBHOOK_PORT` only matters
+for the `python3 dispatcher_tier3.py` path, since gunicorn's `-b` sets the
+port here instead.
+
 `WEBHOOK_SECRET` or `NOTION_WEBHOOK_SECRET` is required — the process refuses
 to start without one of them (or with `WEBHOOK_SECRET` left as the
 `.env.example` placeholder), since an unauthenticated `/webhook` lets anyone
@@ -102,7 +118,9 @@ Endpoints:
     handshake, verified via the `X-Notion-Signature` HMAC header against
     `NOTION_WEBHOOK_SECRET` for every event after that
     (see [Notion's webhook docs](https://developers.notion.com/reference/webhooks))
-- `GET /status` — health check (running task count, max parallel, timestamp)
+- `GET /status` — health check (requires no auth, so it never calls Notion
+  itself — `running_tasks` reflects the last dispatch pass, at most
+  `POLL_INTERVAL_SECONDS` stale)
 
 **Registering a real Notion webhook subscription:** the handshake carries no
 signature, so it's only accepted while `WEBHOOK_SETUP_MODE=1`. To register:
@@ -135,6 +153,7 @@ python3 -m pytest tests/
 | `notion_client.py` | Shared Notion API wrapper used by both dispatchers |
 | `dispatcher_tier2.py` | Tier 2 scheduled dispatcher |
 | `dispatcher_tier3.py` | Tier 3 real-time dispatcher with webhook + parallelism |
+| `wsgi.py` | Production entrypoint for Tier 3 (`gunicorn -w 1 wsgi:app`) |
 | `docs/index.html` | Illustrated documentation site (overview, setup, API reference, troubleshooting) |
 | `docs/dashboard.html` | Sample metrics dashboard template |
 | `ONBOARDING.md` | Team-facing one-pager for creating and tracking tasks |

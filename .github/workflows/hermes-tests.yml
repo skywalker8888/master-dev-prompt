@@ -4,12 +4,14 @@ on:
   pull_request:
     paths:
       - 'hermes/**'
+      - '.github/workflows/hermes-tests.yml'
   push:
     branches:
       - main
       - master
     paths:
       - 'hermes/**'
+      - '.github/workflows/hermes-tests.yml'
 
 jobs:
   test:
