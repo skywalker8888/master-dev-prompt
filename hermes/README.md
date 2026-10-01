@@ -37,14 +37,18 @@ up Tier 1 as FIFO (oldest pending task first) instead:
 1. Add a **Button** property named `▶️ Start Next Task`:
    - Find pages: `Status is pending`, sorted by `Created At` ascending, limit 1
    - Edit pages: set `Status` to `running`
-2. Add an automation **Auto-Complete Automation Tasks**:
-   - Trigger: `Status is set to running` and `Type is automation`
-   - Action: set `Status` to `completed`
-3. Add a second automation **Stamp Completion Time** (covers every `Type`,
-   not just `automation` — tasks finished by a human or an external worker
-   need `Completed At` set too, or they're invisible to the view below):
+2. Add an automation **Stamp Completion Time**:
    - Trigger: `Status is set to completed`
    - Action: set `Completed At` to "now"
+3. Mark a task `completed` yourself once the work is actually done — none of
+   the tiers do this automatically, by design. The button and the dispatcher
+   scripts only hand a task off (`pending` → `running`); none of them execute
+   the task's actual logic or populate `Output`, so nothing here can
+   correctly know when the work is finished except whoever (or whatever)
+   performs it. An earlier version of this automation set `Status` to
+   `completed` the instant a `Type: automation` task started running, which
+   made every automation task look done with zero work having happened in
+   between — don't recreate that automation.
 4. Add views: `📋 Pending Queue` (filter `pending`, sort `Created At` asc),
    `⚡ Running Tasks` (filter `running`), `✅ Done This Week` (filter
    `completed` + `Completed At` within this week — not `Created At`, which

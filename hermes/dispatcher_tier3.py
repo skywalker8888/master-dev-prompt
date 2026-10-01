@@ -42,6 +42,14 @@ from notion_client import MAX_PAGE_SIZE, NotionClient, log, require_env, task_de
 POLL_INTERVAL_SECONDS = 30
 
 app = Flask(__name__)
+# /webhook is publicly reachable and unauthenticated requests still get this
+# far (the body is parsed before any secret check), so an unbounded request
+# would let anyone consume worker memory/CPU with large POST bodies without
+# knowing either secret. Legitimate payloads (a Notion event, a bare
+# verification_token) are tiny; 64 KiB is generous headroom. Flask returns
+# 413 automatically for anything larger, before get_json() runs.
+app.config["MAX_CONTENT_LENGTH"] = 64 * 1024
+
 client: NotionClient | None = None
 max_parallel_tasks = 3
 webhook_secret: str | None = None
@@ -148,6 +156,10 @@ def dispatch_tasks() -> int:
             log(f"Started '{task['name']}'")
             dispatched += 1
 
+        # running_now was captured before this pass's dispatches - without
+        # this, /status would report the pre-dispatch count (e.g. still 0
+        # right after starting 3 tasks) until the next pass corrects it.
+        last_known_running_tasks = running_now + dispatched
         return dispatched
 
 

@@ -132,6 +132,37 @@ def test_dispatch_tasks_updates_cached_status_fields():
     assert tier3.last_dispatch_check_at is not None
 
 
+def test_dispatch_tasks_cached_count_includes_newly_dispatched_tasks():
+    # Zero running, three cheap pending tasks, cap of 3: the cached count
+    # must reflect the three tasks just started, not the pre-dispatch
+    # snapshot of zero - otherwise /status is wrong until the next pass.
+    tier3.client = MagicMock()
+    tier3.max_parallel_tasks = 3
+    tier3.client.get_status.return_value = "pending"
+    tier3.client.query_tasks.return_value = []  # 0 running before this pass
+    tier3.client.query_all_tasks.return_value = [_task("a"), _task("b"), _task("c")]
+
+    dispatched = tier3.dispatch_tasks()
+
+    assert dispatched == 3
+    assert tier3.last_known_running_tasks == 3
+
+
+def test_webhook_rejects_oversized_body():
+    tier3.webhook_secret = "expected-secret"
+    oversized = b'{"padding": "' + b"x" * (65 * 1024) + b'"}'
+
+    with tier3.app.test_client() as test_client:
+        response = test_client.post(
+            "/webhook",
+            data=oversized,
+            content_type="application/json",
+            headers={"X-Webhook-Secret": "expected-secret"},
+        )
+
+    assert response.status_code == 413
+
+
 def test_status_endpoint_does_not_call_notion():
     tier3.client = MagicMock()
     tier3.max_parallel_tasks = 5

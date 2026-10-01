@@ -133,27 +133,23 @@ Step 2: Edit pages
   Property: Status
   Set to: running</div>
 
-    <h3>Automations</h3>
-    <div class="code-block">Automation Name: "Auto-Complete Automation Tasks"
-
-Trigger:
-  Status is set to running
-  Type is automation
-
-Action:
-  Set Status to completed
-
-
-Automation Name: "Stamp Completion Time"
-(covers every Type, not just automation - otherwise tasks a human
-or external worker completes never get a Completed At and stay
-invisible to the "Done This Week" view)
+    <h3>Automation</h3>
+    <div class="code-block">Automation Name: "Stamp Completion Time"
 
 Trigger:
   Status is set to completed
 
 Action:
   Set Completed At to now</div>
+
+    <p>Nothing sets <code>Status</code> to <code>completed</code> automatically,
+    by design. The button and both dispatcher scripts only hand a task off
+    (<code>pending</code> &rarr; <code>running</code>) - none of them execute
+    the task or populate <code>Output</code>, so only whoever (or whatever)
+    actually does the work can correctly mark it done. Mark it
+    <code>completed</code> yourself once it's finished; the automation above
+    just stamps <code>Completed At</code> when that happens, whatever the
+    task's <code>Type</code>.</p>
 
     <p>Full step-by-step instructions live in <code>README.md</code> in this directory.</p>
   </section>
@@ -211,7 +207,7 @@ GET  /status    Health check: running task count, max parallel, timestamp
       </div>
       <div class="card">
         <h4>Automation not triggering</h4>
-        <p>Verify both conditions: Status = running AND Type = automation.</p>
+        <p>Verify the trigger condition: Status = completed. Check that you set Completed At, not Status, as the action.</p>
       </div>
       <div class="card">
         <h4>Dispatcher picks the wrong task</h4>
@@ -223,7 +219,7 @@ GET  /status    Health check: running task count, max parallel, timestamp
       </div>
       <div class="card">
         <h4>Tasks stuck in running</h4>
-        <p>Non-automation types need to be completed manually or via an additional automation.</p>
+        <p>Expected - nothing marks a task completed automatically. Set Status to completed yourself once the work is actually done.</p>
       </div>
     </div>
   </section>
