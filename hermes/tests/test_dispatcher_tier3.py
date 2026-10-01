@@ -19,6 +19,7 @@ def reset_globals(tmp_path):
     tier3.webhook_secret = None
     tier3.notion_webhook_secret = None
     tier3.webhook_setup_mode = False
+    tier3.dispatch_requested.clear()
     # Redirect the verification-token file out of the repo working directory
     # so tests don't leave (or race on) a real dotfile on disk.
     tier3.VERIFICATION_TOKEN_PATH = str(tmp_path / "notion_verification_token")
@@ -124,9 +125,29 @@ def test_main_raises_without_any_webhook_secret(monkeypatch):
     monkeypatch.delenv("WEBHOOK_SECRET", raising=False)
     monkeypatch.delenv("NOTION_WEBHOOK_SECRET", raising=False)
     monkeypatch.delenv("MAX_PARALLEL_TASKS", raising=False)
+    monkeypatch.delenv("WEBHOOK_SETUP_MODE", raising=False)
 
     with pytest.raises(RuntimeError):
         tier3.main()
+
+
+def test_main_allows_setup_mode_bootstrap_without_any_secret(monkeypatch):
+    # A fresh Notion-only install can't know NOTION_WEBHOOK_SECRET until the
+    # handshake arrives, and shouldn't be forced to invent a throwaway
+    # WEBHOOK_SECRET just to start - WEBHOOK_SETUP_MODE is itself the gate.
+    monkeypatch.setattr(tier3, "load_dotenv", lambda: None)
+    monkeypatch.setattr(tier3, "require_env", lambda *names: {"NOTION_TOKEN": "x", "DATABASE_ID": "y"})
+    monkeypatch.setattr(tier3, "NotionClient", MagicMock())
+    monkeypatch.setattr(tier3.threading, "Thread", lambda target, daemon: MagicMock(start=lambda: None))
+    monkeypatch.setattr(tier3.app, "run", lambda **kwargs: None)
+    monkeypatch.delenv("WEBHOOK_SECRET", raising=False)
+    monkeypatch.delenv("NOTION_WEBHOOK_SECRET", raising=False)
+    monkeypatch.delenv("MAX_PARALLEL_TASKS", raising=False)
+    monkeypatch.setenv("WEBHOOK_SETUP_MODE", "1")
+
+    tier3.main()  # must not raise
+
+    assert tier3.webhook_setup_mode is True
 
 
 def test_main_raises_when_max_parallel_tasks_exceeds_page_size(monkeypatch):
@@ -240,6 +261,31 @@ def test_webhook_verification_handshake_writes_token_to_restricted_file():
     assert stat.S_IMODE(path.stat().st_mode) == 0o600
 
 
+def test_webhook_verification_handshake_fixes_permissions_on_pre_existing_file():
+    # O_TRUNC on an already-existing file keeps its old mode; a pre-created,
+    # restored, or accidentally chmodded file must still end up at 0600.
+    tier3.webhook_setup_mode = True
+    path = Path(tier3.VERIFICATION_TOKEN_PATH)
+    path.write_text("stale")
+    path.chmod(0o644)
+
+    with tier3.app.test_client() as test_client:
+        test_client.post("/webhook", json={"verification_token": "abc123"})
+
+    assert path.read_text() == "abc123"
+    assert stat.S_IMODE(path.stat().st_mode) == 0o600
+
+
+def test_webhook_rejects_event_when_no_secret_configured():
+    # Reachable once WEBHOOK_SETUP_MODE lets main() start with neither
+    # secret set - a non-verification event must still be rejected rather
+    # than falling through both checks and being accepted unauthenticated.
+    with tier3.app.test_client() as test_client:
+        response = test_client.post("/webhook", json={"event": "x"})
+
+    assert response.status_code == 401
+
+
 def test_webhook_verification_handshake_fails_closed_when_write_fails(monkeypatch):
     tier3.webhook_setup_mode = True
     monkeypatch.setattr(tier3.os, "open", MagicMock(side_effect=OSError("read-only filesystem")))
@@ -271,9 +317,8 @@ def test_webhook_rejects_invalid_notion_signature():
     assert response.status_code == 401
 
 
-def test_webhook_accepts_valid_notion_signature(monkeypatch):
+def test_webhook_accepts_valid_notion_signature():
     tier3.notion_webhook_secret = "some-secret"
-    monkeypatch.setattr(tier3.threading, "Thread", lambda target, daemon: MagicMock(start=lambda: None))
 
     body = b'{"event":"task.updated"}'
     signature = "sha256=" + hmac.new(b"some-secret", body, hashlib.sha256).hexdigest()
@@ -287,6 +332,9 @@ def test_webhook_accepts_valid_notion_signature(monkeypatch):
         )
 
     assert response.status_code == 202
+    # An accepted webhook coalesces into the background worker's next pass
+    # instead of spawning a thread - see dispatch_requested.
+    assert tier3.dispatch_requested.is_set()
 
 
 def test_webhook_rejects_missing_shared_secret(monkeypatch):
@@ -297,9 +345,8 @@ def test_webhook_rejects_missing_shared_secret(monkeypatch):
     assert response.status_code == 401
 
 
-def test_webhook_accepts_matching_shared_secret(monkeypatch):
+def test_webhook_accepts_matching_shared_secret():
     tier3.webhook_secret = "expected-secret"
-    monkeypatch.setattr(tier3.threading, "Thread", lambda target, daemon: MagicMock(start=lambda: None))
 
     with tier3.app.test_client() as test_client:
         response = test_client.post(
@@ -309,3 +356,4 @@ def test_webhook_accepts_matching_shared_secret(monkeypatch):
         )
 
     assert response.status_code == 202
+    assert tier3.dispatch_requested.is_set()

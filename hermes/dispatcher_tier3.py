@@ -76,6 +76,12 @@ VERIFICATION_TOKEN_PATH = os.getenv("VERIFICATION_TOKEN_PATH", ".notion_verifica
 # cross-process claim mechanism.
 dispatch_lock = threading.Lock()
 
+# Set by the webhook handler, waited on by the single background worker.
+# A webhook burst just sets this once each; it never spawns a thread per
+# request, so a flood of events can't grow unbounded threads waiting on
+# dispatch_lock - they coalesce into whatever the worker's next pass picks up.
+dispatch_requested = threading.Event()
+
 
 def running_task_count(limit: int | None = None) -> int:
     # query_tasks only returns a single Notion page (<= MAX_PAGE_SIZE), so
@@ -151,7 +157,15 @@ def webhook_handler():
         # log access forge X-Notion-Signature. Instead write it to a 0600
         # local file the operator can read once and then delete.
         try:
-            fd = os.open(VERIFICATION_TOKEN_PATH, os.O_WRONLY | os.O_CREAT | os.O_TRUNC, 0o600)
+            # O_NOFOLLOW: refuse to write through a symlink planted at this
+            # path. The 0o600 passed to open() only applies when it creates
+            # the file - if one already exists (a prior run, a restored
+            # backup, a pre-planted file with broader permissions), O_TRUNC
+            # would silently keep its existing mode, so fchmod it explicitly
+            # either way before writing the secret into it.
+            flags = os.O_WRONLY | os.O_CREAT | os.O_TRUNC | getattr(os, "O_NOFOLLOW", 0)
+            fd = os.open(VERIFICATION_TOKEN_PATH, flags, 0o600)
+            os.fchmod(fd, 0o600)
             with os.fdopen(fd, "w") as f:
                 f.write(str(payload["verification_token"]))
         except OSError as exc:
@@ -176,9 +190,18 @@ def webhook_handler():
         if not hmac.compare_digest(provided.encode(), webhook_secret.encode()):
             log("Webhook rejected: invalid or missing X-Webhook-Secret")
             return jsonify({"status": "unauthorized"}), 401
+    else:
+        # Neither secret is configured yet - this only happens during the
+        # WEBHOOK_SETUP_MODE bootstrap window (main() otherwise requires one).
+        # Without this branch, a non-verification event would fall through
+        # both checks above and be accepted with no authentication at all.
+        log("Webhook rejected: no webhook secret configured yet")
+        return jsonify({"status": "unauthorized"}), 401
 
     log(f"Webhook received: {payload}")
-    threading.Thread(target=dispatch_tasks, daemon=True).start()
+    # Coalesce into the background worker's next pass rather than spawning a
+    # thread per request - see dispatch_requested.
+    dispatch_requested.set()
     return jsonify({"status": "accepted"}), 202
 
 
@@ -195,13 +218,18 @@ def status():
 
 
 def continuous_dispatcher() -> None:
+    # The single background worker: runs a pass every POLL_INTERVAL_SECONDS
+    # as a fallback, or immediately whenever the webhook sets
+    # dispatch_requested. Any webhooks that arrive while a pass is already
+    # running coalesce into the next one instead of spawning more workers.
     log("Background dispatcher started")
     while True:
         try:
+            dispatch_requested.wait(timeout=POLL_INTERVAL_SECONDS)
+            dispatch_requested.clear()
             dispatched = dispatch_tasks()
             if dispatched:
                 log(f"Dispatched {dispatched} task(s)")
-            time.sleep(POLL_INTERVAL_SECONDS)
         except Exception as exc:
             log(f"Dispatcher error: {exc}")
             time.sleep(POLL_INTERVAL_SECONDS * 2)
@@ -226,10 +254,13 @@ def main() -> None:
             "running_task_count() undercounts and the parallel-task cap can be exceeded."
         )
 
-    if not webhook_secret and not notion_webhook_secret:
+    if not webhook_secret and not notion_webhook_secret and not webhook_setup_mode:
         raise RuntimeError(
             "WEBHOOK_SECRET or NOTION_WEBHOOK_SECRET must be set - refusing to start "
-            "an unauthenticated /webhook that can trigger dispatches for anyone who can reach it"
+            "an unauthenticated /webhook that can trigger dispatches for anyone who can reach it. "
+            "If this is a fresh Notion-only setup and neither secret exists yet, set "
+            "WEBHOOK_SETUP_MODE=1 instead to start in bootstrap mode: /webhook will accept only "
+            "the verification handshake until a real secret is configured."
         )
 
     if webhook_secret and webhook_secret.strip().lower() in PLACEHOLDER_WEBHOOK_SECRETS:

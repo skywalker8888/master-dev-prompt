@@ -39,8 +39,13 @@ up Tier 1 as FIFO (oldest pending task first) instead:
    - Edit pages: set `Status` to `running`
 2. Add an automation **Auto-Complete Automation Tasks**:
    - Trigger: `Status is set to running` and `Type is automation`
-   - Action: set `Status` to `completed` **and** `Completed At` to "now"
-3. Add views: `📋 Pending Queue` (filter `pending`, sort `Created At` asc),
+   - Action: set `Status` to `completed`
+3. Add a second automation **Stamp Completion Time** (covers every `Type`,
+   not just `automation` — tasks finished by a human or an external worker
+   need `Completed At` set too, or they're invisible to the view below):
+   - Trigger: `Status is set to completed`
+   - Action: set `Completed At` to "now"
+4. Add views: `📋 Pending Queue` (filter `pending`, sort `Created At` asc),
    `⚡ Running Tasks` (filter `running`), `✅ Done This Week` (filter
    `completed` + `Completed At` within this week — not `Created At`, which
    would miss anything completed later than it was created), `📊 Pipeline
@@ -83,8 +88,12 @@ python3 dispatcher_tier3.py
 `WEBHOOK_SECRET` or `NOTION_WEBHOOK_SECRET` is required — the process refuses
 to start without one of them (or with `WEBHOOK_SECRET` left as the
 `.env.example` placeholder), since an unauthenticated `/webhook` lets anyone
-who can reach it trigger dispatches. `MAX_PARALLEL_TASKS` must be between 1
-and 100.
+who can reach it trigger dispatches. The one exception is a fresh Notion-only
+install, where `NOTION_WEBHOOK_SECRET` can't be known until the handshake
+below arrives: set `WEBHOOK_SETUP_MODE=1` instead to start without either
+secret — every endpoint except the verification handshake itself still
+requires a real secret, there just isn't one yet. `MAX_PARALLEL_TASKS` must
+be between 1 and 100.
 
 Endpoints:
 - `POST /webhook` — trigger an immediate dispatch pass. Accepts either:

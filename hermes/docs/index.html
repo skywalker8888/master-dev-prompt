@@ -133,7 +133,7 @@ Step 2: Edit pages
   Property: Status
   Set to: running</div>
 
-    <h3>Automation</h3>
+    <h3>Automations</h3>
     <div class="code-block">Automation Name: "Auto-Complete Automation Tasks"
 
 Trigger:
@@ -142,6 +142,17 @@ Trigger:
 
 Action:
   Set Status to completed
+
+
+Automation Name: "Stamp Completion Time"
+(covers every Type, not just automation - otherwise tasks a human
+or external worker completes never get a Completed At and stay
+invisible to the "Done This Week" view)
+
+Trigger:
+  Status is set to completed
+
+Action:
   Set Completed At to now</div>
 
     <p>Full step-by-step instructions live in <code>README.md</code> in this directory.</p>
