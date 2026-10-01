@@ -81,17 +81,29 @@ python3 dispatcher_tier3.py
 ```
 
 `WEBHOOK_SECRET` or `NOTION_WEBHOOK_SECRET` is required — the process refuses
-to start without one of them, since an unauthenticated `/webhook` lets anyone
-who can reach it trigger dispatches.
+to start without one of them (or with `WEBHOOK_SECRET` left as the
+`.env.example` placeholder), since an unauthenticated `/webhook` lets anyone
+who can reach it trigger dispatches. `MAX_PARALLEL_TASKS` must be between 1
+and 100.
 
 Endpoints:
 - `POST /webhook` — trigger an immediate dispatch pass. Accepts either:
   - a generic caller sending the `X-Webhook-Secret` header (set `WEBHOOK_SECRET`), or
   - a real Notion webhook subscription: Notion's one-time `verification_token`
-    handshake is accepted automatically, and subsequent events are verified
-    via the `X-Notion-Signature` HMAC header against `NOTION_WEBHOOK_SECRET`
+    handshake, verified via the `X-Notion-Signature` HMAC header against
+    `NOTION_WEBHOOK_SECRET` for every event after that
     (see [Notion's webhook docs](https://developers.notion.com/reference/webhooks))
 - `GET /status` — health check (running task count, max parallel, timestamp)
+
+**Registering a real Notion webhook subscription:** the handshake carries no
+signature, so it's only accepted while `WEBHOOK_SETUP_MODE=1`. To register:
+1. Set `WEBHOOK_SETUP_MODE=1` and start the dispatcher.
+2. Create the webhook subscription in Notion's integration settings, pointed
+   at this server's `/webhook`.
+3. Read the token Notion sent from `hermes/.notion_verification_token`
+   (written with `0600` permissions — never logged), and set it as
+   `NOTION_WEBHOOK_SECRET`.
+4. Delete that file, unset `WEBHOOK_SETUP_MODE`, and restart.
 
 **Run only one dispatcher process per database.** The parallel-task cap and
 the pending→running transition are only serialized within a single process.

@@ -18,7 +18,9 @@ Run:
     {"verification_token": ...} handshake, then signs every subsequent event
     body with an X-Notion-Signature header, verified here using
     NOTION_WEBHOOK_SECRET as the HMAC key (see
-    https://developers.notion.com/reference/webhooks).
+    https://developers.notion.com/reference/webhooks). The handshake carries
+    no signature, so it's only accepted while WEBHOOK_SETUP_MODE=1 - set that
+    temporarily to complete setup, then unset it and restart.
 """
 
 import hashlib
@@ -40,6 +42,19 @@ client: NotionClient | None = None
 max_parallel_tasks = 3
 webhook_secret: str | None = None
 notion_webhook_secret: str | None = None
+
+# When False (the default), /webhook rejects any unsigned verification_token
+# payload outright. Without this gate, anyone who can reach a public
+# deployment could repeatedly overwrite the local token file or race the
+# real Notion handshake during setup - regardless of whether a webhook
+# secret is already configured, since the handshake carries no signature.
+# Set WEBHOOK_SETUP_MODE=1 only while completing that one-time handshake,
+# then unset it and restart.
+webhook_setup_mode = False
+
+# Values that must never be accepted as a real WEBHOOK_SECRET - left over
+# from a `cp .env.example .env` an operator forgot to edit.
+PLACEHOLDER_WEBHOOK_SECRETS = {"change_me", "changeme"}
 
 # Where the one-time Notion verification_token is written so an operator can
 # retrieve it and paste it into NOTION_WEBHOOK_SECRET. Written with 0600
@@ -123,22 +138,31 @@ def webhook_handler():
         return jsonify({"status": "bad_request"}), 400
 
     # Notion's one-time subscription verification handshake: no signature is
-    # sent with this request. Never log the token itself - it's the same
-    # value used as the NOTION_WEBHOOK_SECRET HMAC key, so logging it would
-    # let anyone with log access forge X-Notion-Signature. Instead write it
-    # to a 0600 local file the operator can read once and then delete.
+    # sent with this request, so only accept it in the explicit, operator-set
+    # WEBHOOK_SETUP_MODE window - otherwise anyone reaching this endpoint
+    # could repeatedly trigger it, with no secret required.
     if "verification_token" in payload:
+        if not webhook_setup_mode:
+            log("Webhook rejected: verification handshake received but WEBHOOK_SETUP_MODE is not enabled")
+            return jsonify({"status": "not_found"}), 404
+
+        # Never log the token itself - it's the same value used as the
+        # NOTION_WEBHOOK_SECRET HMAC key, so logging it would let anyone with
+        # log access forge X-Notion-Signature. Instead write it to a 0600
+        # local file the operator can read once and then delete.
         try:
             fd = os.open(VERIFICATION_TOKEN_PATH, os.O_WRONLY | os.O_CREAT | os.O_TRUNC, 0o600)
             with os.fdopen(fd, "w") as f:
                 f.write(str(payload["verification_token"]))
-            log(
-                f"Notion webhook verification handshake received - token written to "
-                f"{VERIFICATION_TOKEN_PATH} (mode 600). Copy it into NOTION_WEBHOOK_SECRET, "
-                "then delete the file."
-            )
         except OSError as exc:
             log(f"Notion webhook verification handshake received, but couldn't write the token to disk: {exc}")
+            return jsonify({"status": "error"}), 500
+
+        log(
+            f"Notion webhook verification handshake received - token written to "
+            f"{VERIFICATION_TOKEN_PATH} (mode 600). Copy it into NOTION_WEBHOOK_SECRET, "
+            "then delete the file and unset WEBHOOK_SETUP_MODE."
+        )
         return jsonify({"status": "verified"}), 200
 
     if notion_webhook_secret:
@@ -184,7 +208,7 @@ def continuous_dispatcher() -> None:
 
 
 def main() -> None:
-    global client, max_parallel_tasks, webhook_secret, notion_webhook_secret
+    global client, max_parallel_tasks, webhook_secret, notion_webhook_secret, webhook_setup_mode
 
     load_dotenv()
     env = require_env("NOTION_TOKEN", "DATABASE_ID")
@@ -193,18 +217,26 @@ def main() -> None:
     webhook_port = int(os.getenv("WEBHOOK_PORT", "5000"))
     webhook_secret = os.getenv("WEBHOOK_SECRET")
     notion_webhook_secret = os.getenv("NOTION_WEBHOOK_SECRET")
+    webhook_setup_mode = os.getenv("WEBHOOK_SETUP_MODE", "").strip().lower() in {"1", "true", "yes"}
 
-    if max_parallel_tasks > MAX_PAGE_SIZE:
+    if not (1 <= max_parallel_tasks <= MAX_PAGE_SIZE):
         raise RuntimeError(
-            f"MAX_PARALLEL_TASKS ({max_parallel_tasks}) exceeds {MAX_PAGE_SIZE} - "
-            "running_task_count() only pages through a single Notion page and would "
-            "undercount above that, letting the parallel-task cap be exceeded"
+            f"MAX_PARALLEL_TASKS ({max_parallel_tasks}) must be between 1 and {MAX_PAGE_SIZE}. "
+            "A value below 1 silently refuses all work; above the page limit, "
+            "running_task_count() undercounts and the parallel-task cap can be exceeded."
         )
 
     if not webhook_secret and not notion_webhook_secret:
         raise RuntimeError(
             "WEBHOOK_SECRET or NOTION_WEBHOOK_SECRET must be set - refusing to start "
             "an unauthenticated /webhook that can trigger dispatches for anyone who can reach it"
+        )
+
+    if webhook_secret and webhook_secret.strip().lower() in PLACEHOLDER_WEBHOOK_SECRETS:
+        raise RuntimeError(
+            "WEBHOOK_SECRET is still the placeholder value from .env.example - "
+            "generate a real secret (e.g. `python3 -c \"import secrets; print(secrets.token_urlsafe(32))\"`) "
+            "and set it before starting"
         )
 
     log("Hermes Tier 3 dispatcher started")

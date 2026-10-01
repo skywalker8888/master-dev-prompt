@@ -18,6 +18,7 @@ def reset_globals(tmp_path):
     tier3.max_parallel_tasks = 3
     tier3.webhook_secret = None
     tier3.notion_webhook_secret = None
+    tier3.webhook_setup_mode = False
     # Redirect the verification-token file out of the repo working directory
     # so tests don't leave (or race on) a real dotfile on disk.
     tier3.VERIFICATION_TOKEN_PATH = str(tmp_path / "notion_verification_token")
@@ -139,6 +140,30 @@ def test_main_raises_when_max_parallel_tasks_exceeds_page_size(monkeypatch):
         tier3.main()
 
 
+@pytest.mark.parametrize("value", ["0", "-1"])
+def test_main_raises_when_max_parallel_tasks_is_not_positive(monkeypatch, value):
+    monkeypatch.setattr(tier3, "load_dotenv", lambda: None)
+    monkeypatch.setattr(tier3, "require_env", lambda *names: {"NOTION_TOKEN": "x", "DATABASE_ID": "y"})
+    monkeypatch.setattr(tier3, "NotionClient", MagicMock())
+    monkeypatch.setenv("WEBHOOK_SECRET", "expected-secret")
+    monkeypatch.setenv("MAX_PARALLEL_TASKS", value)
+
+    with pytest.raises(RuntimeError, match="MAX_PARALLEL_TASKS"):
+        tier3.main()
+
+
+def test_main_raises_when_webhook_secret_is_the_example_placeholder(monkeypatch):
+    monkeypatch.setattr(tier3, "load_dotenv", lambda: None)
+    monkeypatch.setattr(tier3, "require_env", lambda *names: {"NOTION_TOKEN": "x", "DATABASE_ID": "y"})
+    monkeypatch.setattr(tier3, "NotionClient", MagicMock())
+    monkeypatch.delenv("MAX_PARALLEL_TASKS", raising=False)
+    monkeypatch.setenv("WEBHOOK_SECRET", "change_me")
+    monkeypatch.delenv("NOTION_WEBHOOK_SECRET", raising=False)
+
+    with pytest.raises(RuntimeError, match="placeholder"):
+        tier3.main()
+
+
 def test_verify_notion_signature_accepts_matching_hmac():
     body = b'{"event":"task.updated"}'
     secret = "shhh"
@@ -174,8 +199,19 @@ def test_webhook_rejects_non_ascii_shared_secret_header_without_crashing():
     assert response.status_code == 401
 
 
-def test_webhook_accepts_notion_verification_handshake():
-    tier3.notion_webhook_secret = "some-secret"
+def test_webhook_rejects_verification_handshake_outside_setup_mode():
+    # The handshake carries no signature, so outside the explicit
+    # WEBHOOK_SETUP_MODE window it must not be accepted from just anyone.
+    tier3.webhook_setup_mode = False
+    with tier3.app.test_client() as test_client:
+        response = test_client.post("/webhook", json={"verification_token": "abc123"})
+
+    assert response.status_code == 404
+    assert not Path(tier3.VERIFICATION_TOKEN_PATH).exists()
+
+
+def test_webhook_accepts_notion_verification_handshake_in_setup_mode():
+    tier3.webhook_setup_mode = True
     with tier3.app.test_client() as test_client:
         response = test_client.post("/webhook", json={"verification_token": "abc123"})
 
@@ -187,7 +223,7 @@ def test_webhook_verification_handshake_does_not_log_token(capsys):
     # The verification token doubles as the NOTION_WEBHOOK_SECRET HMAC key,
     # so it must never end up in logs - anyone reading them could forge
     # X-Notion-Signature.
-    tier3.notion_webhook_secret = "some-secret"
+    tier3.webhook_setup_mode = True
     with tier3.app.test_client() as test_client:
         test_client.post("/webhook", json={"verification_token": "abc123"})
 
@@ -195,13 +231,25 @@ def test_webhook_verification_handshake_does_not_log_token(capsys):
 
 
 def test_webhook_verification_handshake_writes_token_to_restricted_file():
-    tier3.notion_webhook_secret = "some-secret"
+    tier3.webhook_setup_mode = True
     with tier3.app.test_client() as test_client:
         test_client.post("/webhook", json={"verification_token": "abc123"})
 
     path = Path(tier3.VERIFICATION_TOKEN_PATH)
     assert path.read_text() == "abc123"
     assert stat.S_IMODE(path.stat().st_mode) == 0o600
+
+
+def test_webhook_verification_handshake_fails_closed_when_write_fails(monkeypatch):
+    tier3.webhook_setup_mode = True
+    monkeypatch.setattr(tier3.os, "open", MagicMock(side_effect=OSError("read-only filesystem")))
+
+    with tier3.app.test_client() as test_client:
+        response = test_client.post("/webhook", json={"verification_token": "abc123"})
+
+    # Must not report "verified" when the operator has no way to retrieve
+    # the token that was supposedly just verified.
+    assert response.status_code == 500
 
 
 def test_webhook_rejects_non_dict_json_payload():
