@@ -195,7 +195,11 @@ WEBHOOK_SETUP_MODE    Set to 1 only while registering a new Notion webhook
                     handshake, then verifies X-Notion-Signature on events
 GET  /status    Health check: running task count, max parallel, timestamp
                   (unauthenticated by design, so it never calls Notion -
-                  running task count reflects the last dispatch pass)</div>
+                  running task count reflects the last dispatch pass).
+                  running_tasks_is_exact: false means that count is a
+                  lower bound - the capacity check only queries up to
+                  MAX_PARALLEL_TASKS results, so hitting that many means
+                  there could be more running than reported</div>
   </section>
 
   <section id="troubleshooting" class="section">

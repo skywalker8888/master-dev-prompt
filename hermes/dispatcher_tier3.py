@@ -97,6 +97,11 @@ dispatch_requested = threading.Event()
 # Updated by dispatch_tasks() each pass, read by /status - see status()
 # below for why /status never calls Notion directly.
 last_known_running_tasks = 0
+# False whenever the running-task query hit max_parallel_tasks (its page
+# size), since that count is then a lower bound, not the true total - e.g.
+# an operator started tasks outside this dispatcher, or lowered
+# MAX_PARALLEL_TASKS after more tasks were already running than that.
+last_known_running_tasks_is_exact = True
 last_dispatch_check_at: str | None = None
 
 
@@ -118,13 +123,16 @@ def verify_notion_signature(raw_body: bytes, signature_header: str | None, secre
 
 
 def dispatch_tasks() -> int:
-    global last_known_running_tasks, last_dispatch_check_at
+    global last_known_running_tasks, last_known_running_tasks_is_exact, last_dispatch_check_at
     with dispatch_lock:
         # Bounding the query at max_parallel_tasks is enough to decide
         # whether the cap is reached, without needing to page through every
-        # Running task (query_tasks only returns one Notion page).
+        # Running task (query_tasks only returns one Notion page). If the
+        # query comes back exactly at that limit, there could be more we
+        # didn't see - the count returned is then a lower bound, not exact.
         running_now = running_task_count(limit=max_parallel_tasks)
         last_known_running_tasks = running_now
+        last_known_running_tasks_is_exact = running_now < max_parallel_tasks
         last_dispatch_check_at = datetime.now().isoformat()
 
         available_slots = max_parallel_tasks - running_now
@@ -244,6 +252,12 @@ def status():
         {
             "status": "running",
             "running_tasks": last_known_running_tasks,
+            # False means running_tasks is a lower bound, not the true count -
+            # the capacity check only queries up to max_parallel_tasks, so if
+            # it hit that many there could be more (e.g. tasks started
+            # outside this dispatcher, or MAX_PARALLEL_TASKS lowered after
+            # more were already running).
+            "running_tasks_is_exact": last_known_running_tasks_is_exact,
             "max_parallel": max_parallel_tasks,
             "last_dispatch_check": last_dispatch_check_at,
             "timestamp": datetime.now().isoformat(),

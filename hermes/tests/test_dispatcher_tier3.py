@@ -21,6 +21,7 @@ def reset_globals(tmp_path):
     tier3.webhook_setup_mode = False
     tier3.dispatch_requested.clear()
     tier3.last_known_running_tasks = 0
+    tier3.last_known_running_tasks_is_exact = True
     tier3.last_dispatch_check_at = None
     # Redirect the verification-token file out of the repo working directory
     # so tests don't leave (or race on) a real dotfile on disk.
@@ -47,6 +48,34 @@ def test_dispatch_tasks_skips_when_at_capacity():
 
     assert dispatched == 0
     tier3.client.update_status.assert_not_called()
+
+
+def test_dispatch_tasks_marks_capped_running_count_as_not_exact():
+    # The capacity check queries only up to max_parallel_tasks results, so
+    # hitting that count exactly means there could be more running tasks we
+    # didn't see (e.g. started outside this dispatcher, or the cap was
+    # lowered after more were already running) - /status must not claim
+    # that number is the true total.
+    tier3.client = MagicMock()
+    tier3.max_parallel_tasks = 3
+    tier3.client.query_tasks.return_value = [_task(), _task(), _task()]  # hits the cap exactly
+
+    tier3.dispatch_tasks()
+
+    assert tier3.last_known_running_tasks == 3
+    assert tier3.last_known_running_tasks_is_exact is False
+
+
+def test_dispatch_tasks_marks_under_capacity_running_count_as_exact():
+    tier3.client = MagicMock()
+    tier3.max_parallel_tasks = 3
+    tier3.client.query_tasks.return_value = [_task()]  # 1 running, well under the cap
+    tier3.client.query_all_tasks.return_value = []
+
+    tier3.dispatch_tasks()
+
+    assert tier3.last_known_running_tasks == 1
+    assert tier3.last_known_running_tasks_is_exact is True
 
 
 def test_dispatch_tasks_starts_cheapest_pending_tasks_up_to_available_slots():
@@ -167,6 +196,7 @@ def test_status_endpoint_does_not_call_notion():
     tier3.client = MagicMock()
     tier3.max_parallel_tasks = 5
     tier3.last_known_running_tasks = 2
+    tier3.last_known_running_tasks_is_exact = False
     tier3.last_dispatch_check_at = "2026-01-01T00:00:00"
 
     with tier3.app.test_client() as test_client:
@@ -175,6 +205,7 @@ def test_status_endpoint_does_not_call_notion():
     assert response.status_code == 200
     body = response.get_json()
     assert body["running_tasks"] == 2
+    assert body["running_tasks_is_exact"] is False
     assert body["max_parallel"] == 5
     assert body["last_dispatch_check"] == "2026-01-01T00:00:00"
     # The whole point: /status is unauthenticated and must never trigger a

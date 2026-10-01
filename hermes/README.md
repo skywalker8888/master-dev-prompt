@@ -124,7 +124,11 @@ Endpoints:
     (see [Notion's webhook docs](https://developers.notion.com/reference/webhooks))
 - `GET /status` — health check (requires no auth, so it never calls Notion
   itself — `running_tasks` reflects the last dispatch pass, at most
-  `POLL_INTERVAL_SECONDS` stale)
+  `POLL_INTERVAL_SECONDS` stale). `running_tasks_is_exact: false` means
+  `running_tasks` is a lower bound, not the true count — the capacity check
+  only queries up to `MAX_PARALLEL_TASKS` results, so hitting that many means
+  there could be more (tasks started outside this dispatcher, or the cap
+  lowered after more were already running)
 
 **Registering a real Notion webhook subscription:** the handshake carries no
 signature, so it's only accepted while `WEBHOOK_SETUP_MODE=1`. To register:
